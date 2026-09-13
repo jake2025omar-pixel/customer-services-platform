@@ -1,9 +1,22 @@
 import crypto from "node:crypto";
-import { and, desc, eq, gte, sql, sum } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql, sum } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { auditLogs, InsertUser, pointsLedger, rewardSessions, rewardTransactions, users } from "../drizzle/schema";
+import {
+  auditLogs,
+  campaignEntries,
+  campaignTicketLedger,
+  campaigns,
+  InsertUser,
+  orders,
+  pointsLedger,
+  rewardSessions,
+  rewardTransactions,
+  services,
+  users,
+} from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import { hashToken } from "./rewards";
+import { sendOrderToTelegram } from "../services/telegram_service.js";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -51,24 +64,125 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+async function sumLedger(db: Awaited<ReturnType<typeof getDb>>, table: typeof pointsLedger | typeof campaignTicketLedger, userId: number) {
+  if (!db) return 0;
+  const [result] = await db.select({ total: sum(table.amount) }).from(table).where(eq(table.userId, userId));
+  return Number(result?.total ?? 0);
+}
+
 export async function getDashboardData(userId: number) {
   const db = await getDb();
-  if (!db) {
-    return { points: 0, tickets: 0, rewards: 0, orders: 0, accountStatus: "Active", recentActivity: [] };
-  }
-  const [balance] = await db.select({ total: sum(pointsLedger.amount) }).from(pointsLedger).where(eq(pointsLedger.userId, userId));
+  if (!db) return { points: 0, tickets: 0, rewards: 0, orders: 0, accountStatus: "Active", recentActivity: [], sessions: 0, serviceCount: 0, activeCampaignCount: 0 };
   const [rewards] = await db.select({ total: sql<number>`count(*)` }).from(rewardTransactions).where(and(eq(rewardTransactions.userId, userId), eq(rewardTransactions.status, "VERIFIED")));
+  const [ordersCount] = await db.select({ total: sql<number>`count(*)` }).from(orders).where(eq(orders.userId, userId));
   const [sessions] = await db.select({ total: sql<number>`count(*)` }).from(rewardSessions).where(eq(rewardSessions.userId, userId));
+  const [serviceCount] = await db.select({ total: sql<number>`count(*)` }).from(services).where(eq(services.isActive, true));
+  const [activeCampaignCount] = await db.select({ total: sql<number>`count(*)` }).from(campaigns).where(and(eq(campaigns.isActive, true), lte(campaigns.startsAt, new Date()), gte(campaigns.endsAt, new Date())));
   const activity = await db.select().from(pointsLedger).where(eq(pointsLedger.userId, userId)).orderBy(desc(pointsLedger.createdAt)).limit(5);
   return {
-    points: Number(balance?.total ?? 0),
-    tickets: 0,
+    points: await sumLedger(db, pointsLedger, userId),
+    tickets: await sumLedger(db, campaignTicketLedger, userId),
     rewards: Number(rewards?.total ?? 0),
-    orders: 0,
+    orders: Number(ordersCount?.total ?? 0),
     accountStatus: "Active",
     recentActivity: activity.map(item => ({ id: item.id, type: item.type, amount: item.amount, description: item.description, createdAt: item.createdAt })),
     sessions: Number(sessions?.total ?? 0),
+    serviceCount: Number(serviceCount?.total ?? 0),
+    activeCampaignCount: Number(activeCampaignCount?.total ?? 0),
   };
+}
+
+export async function listServices(options: { includeInactive?: boolean } = {}) {
+  const db = await getDb();
+  if (!db) return [];
+  return options.includeInactive ? db.select().from(services).orderBy(desc(services.createdAt)) : db.select().from(services).where(eq(services.isActive, true)).orderBy(desc(services.createdAt));
+}
+
+export async function getServiceById(id: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(services).where(eq(services.id, id)).limit(1);
+  return result[0];
+}
+
+export async function createService(input: { title: string; description: string; imageUrl: string; imageKey?: string | null; pointsPrice?: number | null; usdPrice?: string | null; category: string; stock: number; isActive: boolean }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const id = crypto.randomUUID();
+  await db.insert(services).values({ id, title: input.title, description: input.description, imageUrl: input.imageUrl, imageKey: input.imageKey ?? null, pointsPrice: input.pointsPrice ?? null, usdPrice: input.usdPrice ?? null, category: input.category, stock: input.stock, isActive: input.isActive });
+  return getServiceById(id);
+}
+
+export async function updateService(id: string, input: Partial<{ title: string; description: string; imageUrl: string; imageKey: string | null; pointsPrice: number | null; usdPrice: string | null; category: string; stock: number; isActive: boolean }>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(services).set(input).where(eq(services.id, id));
+  return getServiceById(id);
+}
+
+export async function deleteService(id: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const [existingOrder] = await db.select({ id: orders.id }).from(orders).where(eq(orders.serviceId, id)).limit(1);
+  if (existingOrder) throw new Error("Service has existing orders; deactivate it instead of deleting it");
+  await db.delete(services).where(eq(services.id, id));
+}
+
+export async function listCampaigns(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const now = new Date();
+  const rows = await db.select().from(campaigns).where(and(eq(campaigns.isActive, true), lte(campaigns.startsAt, now), gte(campaigns.endsAt, now))).orderBy(campaigns.endsAt);
+  return Promise.all(rows.map(async campaign => {
+    const [count] = await db.select({ total: sql<number>`count(*)` }).from(campaignEntries).where(eq(campaignEntries.campaignId, campaign.id));
+    const [joined] = await db.select({ id: campaignEntries.id }).from(campaignEntries).where(and(eq(campaignEntries.campaignId, campaign.id), eq(campaignEntries.userId, userId))).limit(1);
+    return { ...campaign, participantCount: Number(count?.total ?? 0), userJoined: Boolean(joined) };
+  }));
+}
+
+export async function joinCampaign(input: { campaignId: string; userId: number; idempotencyKey: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const previous = await db.select().from(campaignEntries).where(eq(campaignEntries.idempotencyKey, input.idempotencyKey)).limit(1);
+  if (previous[0]) return { status: "idempotent_replay", entry: previous[0] };
+  const result = await db.transaction(async tx => {
+    const [campaign] = await tx.select().from(campaigns).where(eq(campaigns.id, input.campaignId)).limit(1);
+    if (!campaign || !campaign.isActive || campaign.startsAt.getTime() > Date.now() || campaign.endsAt.getTime() < Date.now()) throw new Error("Campaign is not available");
+    const [alreadyJoined] = await tx.select().from(campaignEntries).where(and(eq(campaignEntries.campaignId, input.campaignId), eq(campaignEntries.userId, input.userId))).limit(1);
+    if (alreadyJoined) return { status: "already_joined", entry: alreadyJoined };
+    const [ticketBalance] = await tx.select({ total: sum(campaignTicketLedger.amount) }).from(campaignTicketLedger).where(eq(campaignTicketLedger.userId, input.userId));
+    const availableTickets = Number(ticketBalance?.total ?? 0);
+    if (availableTickets < campaign.ticketCost) throw new Error(`You need ${campaign.ticketCost} tickets to join this campaign`);
+    const entryId = crypto.randomUUID();
+    await tx.insert(campaignEntries).values({ id: entryId, campaignId: input.campaignId, userId: input.userId, ticketsSpent: campaign.ticketCost, idempotencyKey: input.idempotencyKey });
+    await tx.insert(campaignTicketLedger).values({ id: crypto.randomUUID(), userId: input.userId, campaignId: input.campaignId, amount: -campaign.ticketCost, referenceId: input.idempotencyKey, description: `Joined campaign: ${campaign.name}` });
+    await tx.insert(auditLogs).values({ id: crypto.randomUUID(), userId: input.userId, action: "CAMPAIGN_JOINED", referenceId: entryId, metadata: JSON.stringify({ campaignId: campaign.id, ticketsSpent: campaign.ticketCost, idempotencyKey: input.idempotencyKey }) });
+    return { status: "joined", entry: { id: entryId, campaignId: campaign.id, ticketsSpent: campaign.ticketCost } };
+  });
+  return result;
+}
+
+export async function createOrderFromVerifiedPayment(input: { userId: number; serviceId: string; paymentProvider: string; paymentReference: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  const [previous] = await db.select().from(orders).where(and(eq(orders.paymentProvider, input.paymentProvider), eq(orders.paymentReference, input.paymentReference))).limit(1);
+  if (previous) return previous;
+  const service = await getServiceById(input.serviceId);
+  if (!service || !service.isActive || service.stock <= 0) throw new Error("Service is unavailable");
+  const [user] = await db.select().from(users).where(eq(users.id, input.userId)).limit(1);
+  if (!user?.email) throw new Error("Verified Google email is required for an order");
+  const id = crypto.randomUUID();
+  await db.insert(orders).values({ id, userId: input.userId, serviceId: service.id, serviceTitle: service.title, googleEmail: user.email, pointsPrice: service.pointsPrice, usdPrice: service.usdPrice, paymentProvider: input.paymentProvider, paymentReference: input.paymentReference, status: "PAID" });
+  await db.update(services).set({ stock: sql`${services.stock} - 1` }).where(eq(services.id, service.id));
+  const [created] = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
+  try {
+    await sendOrderToTelegram(created);
+    await db.update(orders).set({ status: "TELEGRAM_SENT", telegramSentAt: new Date() }).where(eq(orders.id, id));
+  } catch (error) {
+    console.error("[Telegram] Order notification failed", error);
+    await db.update(orders).set({ status: "TELEGRAM_FAILED" }).where(eq(orders.id, id));
+  }
+  return db.select().from(orders).where(eq(orders.id, id)).limit(1).then(rows => rows[0]);
 }
 
 export async function createRewardSessionRecord(input: { id?: string; userId: number; provider: string; adPlacement: string; sessionTokenHash: string; expiresAt: Date }) {

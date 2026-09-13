@@ -18,6 +18,11 @@ import type {
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
 
+export function isGoogleLoginMethod(method: unknown): boolean {
+  const normalized = String(method ?? "").toLowerCase();
+  return normalized === "google" || normalized === "registered_platform_google" || normalized.includes("google");
+}
+
 export type SessionPayload = {
   openId: string;
   appId: string;
@@ -309,6 +314,10 @@ class SDKServer {
 
     if (!user) {
       throw ForbiddenError("User not found");
+    }
+
+    if (process.env.GOOGLE_ONLY_LOGIN === "true" && !isGoogleLoginMethod(user.loginMethod)) {
+      throw ForbiddenError("Only Google sign-in is allowed");
     }
 
     await db.upsertUser({

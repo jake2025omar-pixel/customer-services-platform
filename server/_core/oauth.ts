@@ -3,7 +3,7 @@ import { parse as parseCookieHeader } from "cookie";
 import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
-import { sdk } from "./sdk";
+import { isGoogleLoginMethod, sdk } from "./sdk";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -37,6 +37,11 @@ export function registerOAuthRoutes(app: Express) {
 
       if (!userInfo.openId) {
         res.status(400).json({ error: "openId missing from user info" });
+        return;
+      }
+
+      if (process.env.GOOGLE_ONLY_LOGIN === "true" && !isGoogleLoginMethod(userInfo.loginMethod ?? userInfo.platform)) {
+        res.status(403).json({ error: "Only Google sign-in is allowed" });
         return;
       }
 

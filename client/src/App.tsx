@@ -8,10 +8,11 @@ import Home from "./pages/Home";
 import Contests from "./pages/Contests";
 import RewardedAds from "./pages/RewardedAds";
 import Services from "./pages/Services";
-import Admin from "./pages/Admin";
+import Admin from "@/pages/Admin";
+import AdminServices from "@/pages/AdminServices";
 import { useAuth } from "./_core/hooks/useAuth";
 import { startLogin } from "./const";
-import { LayoutDashboard, Trophy, Gift, Layers3, ShieldCheck, LogOut, Sparkles } from "lucide-react";
+import { LayoutDashboard, Trophy, Gift, Layers3, LogOut, Settings2, Sparkles } from "lucide-react";
 
 const navItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -50,22 +51,23 @@ function Shell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const current = navItems.find(item => item.href === location);
+  const visibleNavItems = user?.role === "admin" ? [...navItems, { href: "/admin/services", label: "Manage Services", icon: Settings2 }] : navItems;
+  const current = visibleNavItems.find(item => item.href === location);
   return (
     <div className="min-h-screen bg-[#08101c] text-slate-100">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-white/[0.07] bg-[#0a1523]/90 px-4 py-6 backdrop-blur-xl lg:block">
         <button onClick={() => navigate("/")} className="mb-10 flex w-full items-center gap-3 px-3 text-left"><span className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-300 text-[#07131d]"><Sparkles size={18} /></span><span><span className="block text-xs font-bold tracking-[0.2em] text-emerald-200">CUSTOMER</span><span className="block text-[10px] font-semibold tracking-[0.3em] text-slate-400">SERVICES</span></span></button>
-        <nav className="space-y-2">{navItems.map(item => { const Icon = item.icon; const active = current?.href === item.href; return <button key={item.href} onClick={() => navigate(item.href)} className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition ${active ? "bg-emerald-300 text-[#07131d] shadow-[0_10px_24px_rgba(110,231,183,0.12)]" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}><Icon size={18} />{item.label}</button>; })}</nav>
+        <nav className="space-y-2">{visibleNavItems.map(item => { const Icon = item.icon; const active = current?.href === item.href; return <button key={item.href} onClick={() => navigate(item.href)} className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition ${active ? "bg-emerald-300 text-[#07131d] shadow-[0_10px_24px_rgba(110,231,183,0.12)]" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}><Icon size={18} />{item.label}</button>; })}</nav>
         <div className="absolute bottom-6 left-4 right-4"><div className="mb-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4"><p className="text-xs text-slate-500">Signed in as</p><p className="mt-1 truncate text-sm font-semibold text-white">{user?.name || user?.email || "Google member"}</p><p className="mt-1 text-xs text-emerald-200">{user?.role === "admin" ? "Administrator" : "Active member"}</p></div><button onClick={() => logout()} className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-white/5 hover:text-white"><LogOut size={17} />Sign out</button></div>
       </aside>
       <div className="lg:pl-64"><header className="sticky top-0 z-20 flex items-center justify-between border-b border-white/[0.07] bg-[#08101c]/85 px-5 py-4 backdrop-blur-xl sm:px-8"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">Workspace</p><h1 className="mt-1 text-xl font-semibold text-white">{current?.label || "Overview"}</h1></div><div className="flex items-center gap-3"><span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-slate-400 sm:inline">Secure member area</span><button onClick={() => logout()} className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden" aria-label="Sign out"><LogOut size={17} /></button><div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-300/15 text-sm font-bold text-emerald-200">{(user?.name || "M").slice(0, 1).toUpperCase()}</div></div></header><main className="mx-auto max-w-7xl px-5 py-7 pb-28 sm:px-8 lg:py-10">{children}</main></div>
-      <nav className="fixed bottom-3 left-3 right-3 z-30 grid grid-cols-4 gap-1 rounded-2xl border border-white/10 bg-[#0d1a2a]/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden">{navItems.map(item => { const Icon = item.icon; const active = current?.href === item.href; return <button key={item.href} onClick={() => navigate(item.href)} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-semibold ${active ? "bg-emerald-300 text-[#07131d]" : "text-slate-500"}`}><Icon size={17} />{item.label}</button>; })}</nav>
+      <nav className={`fixed bottom-3 left-3 right-3 z-30 grid gap-1 rounded-2xl border border-white/10 bg-[#0d1a2a]/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden ${user?.role === "admin" ? "grid-cols-5" : "grid-cols-4"}`}>{visibleNavItems.map(item => { const Icon = item.icon; const active = current?.href === item.href; return <button key={item.href} onClick={() => navigate(item.href)} className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-semibold ${active ? "bg-emerald-300 text-[#07131d]" : "text-slate-500"}`}><Icon size={17} />{item.label}</button>; })}</nav>
     </div>
   );
 }
 
 function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="dark"><TooltipProvider><Toaster /><Shell><Switch><Route path="/" component={Home} /><Route path="/contests" component={Contests} /><Route path="/rewarded-ads" component={RewardedAds} /><Route path="/services" component={Services} /><Route path="/admin" component={Admin} /><Route component={NotFound} /></Switch></Shell></TooltipProvider></ThemeProvider></ErrorBoundary>;
+  return <ErrorBoundary><ThemeProvider defaultTheme="dark"><TooltipProvider><Toaster /><Shell><Switch><Route path="/" component={Home} /><Route path="/contests" component={Contests} /><Route path="/rewarded-ads" component={RewardedAds} /><Route path="/services" component={Services} /><Route path="/admin/services" component={AdminServices} /><Route path="/admin" component={Admin} /><Route component={NotFound} /></Switch></Shell></TooltipProvider></ThemeProvider></ErrorBoundary>;
 }
 
 export default App;

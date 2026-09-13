@@ -15,6 +15,20 @@
       "when": 1789222104366,
       "tag": "0001_common_molly_hayes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1789228889668,
+      "tag": "0002_next_lionheart",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1789300945619,
+      "tag": "0003_black_yellow_claw",
+      "breakpoints": true
     }
   ]
 }
