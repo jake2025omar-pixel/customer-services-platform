@@ -1,0 +1,6 @@
+{
+  "name": "Customer Services Platform",
+  "description": "Digital services, contests, and secure rewards platform.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

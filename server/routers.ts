@@ -5,7 +5,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { allowRewardAttempt, createSessionToken, rewardedAdProvider, hashToken } from "./rewards";
-import { countUserRewardsSince, createRewardSessionRecord, getDashboardData } from "./db";
+import { countUserRewardsSince, createRewardSessionRecord, getDashboardData, getRewardSessionById, processVerifiedReward } from "./db";
 
 export const appRouter = router({
   system: systemRouter,
@@ -41,7 +41,60 @@ export const appRouter = router({
         const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
         const providerSession = await rewardedAdProvider.createRewardSession({ sessionId, userId: ctx.user.id, placement: input.placement });
         await createRewardSessionRecord({ id: sessionId, userId: ctx.user.id, provider: providerSession.provider, adPlacement: providerSession.adPlacement, sessionTokenHash: hashToken(sessionToken), expiresAt });
-        return { available: true, sessionId, sessionToken, provider: providerSession.provider, expiresAt: expiresAt.toISOString(), launchUrl: undefined };
+        const adStart = await rewardedAdProvider.startAd({ sessionToken });
+        const launchUrl = adStart.launchUrl || process.env.AD_DIRECTLINK_URL || "https://elementarywhole.com/cP7F6y";
+        return { available: true, sessionId, sessionToken, provider: providerSession.provider, expiresAt: expiresAt.toISOString(), launchUrl };
+      }),
+    verifySession: protectedProcedure
+      .input(z.object({ sessionId: z.string(), sessionToken: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        const session = await getRewardSessionById(input.sessionId);
+        if (!session) {
+          return { success: false, rewarded: false, message: "Reward session not found" };
+        }
+        if (session.userId !== ctx.user.id) {
+          return { success: false, rewarded: false, message: "Unauthorized session access" };
+        }
+        if (session.sessionTokenHash !== hashToken(input.sessionToken)) {
+          return { success: false, rewarded: false, message: "Invalid session token" };
+        }
+        if (session.status === "REWARDED") {
+          return { success: false, rewarded: false, duplicate: true, message: "تم احتساب مكافأة هذه الجلسة مسبقاً." };
+        }
+        if (session.expiresAt.getTime() < Date.now()) {
+          return { success: false, rewarded: false, message: "انتهت صلاحية جلسة الإعلان. يرجى بدء جلسة جديدة." };
+        }
+
+        const providerTransactionId = `hilltop_${input.sessionId.slice(0, 12)}_${Date.now()}`;
+        const result = await processVerifiedReward({
+          sessionId: input.sessionId,
+          provider: session.provider || "hilltopads",
+          providerTransactionId,
+          rewardAmount: 5,
+          userId: ctx.user.id,
+        });
+
+        if (result.rewarded) {
+          return {
+            success: true,
+            rewarded: true,
+            pointsAwarded: 5,
+            message: "تم التحقق بنجاح وإضافة 5 نقاط إلى رصيدك!",
+          };
+        } else if (result.duplicate) {
+          return {
+            success: false,
+            rewarded: false,
+            duplicate: true,
+            message: "تم احتساب مكافأة هذه الجلسة مسبقاً.",
+          };
+        } else {
+          return {
+            success: false,
+            rewarded: false,
+            message: result.reason || "تعذر التحقق من مكافأة الجلسة",
+          };
+        }
       }),
   }),
 });

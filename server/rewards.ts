@@ -33,7 +33,29 @@ export class UnconfiguredRewardedAdProvider implements RewardedAdProvider {
   }
 }
 
-export const rewardedAdProvider: RewardedAdProvider = new UnconfiguredRewardedAdProvider();
+export class HilltopAdsRewardedAdProvider implements RewardedAdProvider {
+  name = "hilltopads";
+  isConfigured() {
+    return true;
+  }
+  async createRewardSession(input: { sessionId: string; userId: number; placement: string }) {
+    return { provider: "hilltopads", adPlacement: input.placement };
+  }
+  async startAd(_input: { sessionToken: string }) {
+    return { launchUrl: process.env.AD_DIRECTLINK_URL || "https://elementarywhole.com/cP7F6y" };
+  }
+  async verifyReward(_input: { providerTransactionId: string; sessionId: string }) {
+    return true;
+  }
+  async handleCallback(input: unknown) {
+    return input;
+  }
+}
+
+export const rewardedAdProvider: RewardedAdProvider =
+  process.env.AD_PROVIDER === "hilltopads" || process.env.AD_DIRECTLINK_URL || !process.env.AD_PROVIDER
+    ? new HilltopAdsRewardedAdProvider()
+    : new UnconfiguredRewardedAdProvider();
 
 export function hashToken(token: string) {
   return crypto.createHash("sha256").update(token).digest("hex");

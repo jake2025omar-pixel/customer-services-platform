@@ -178,13 +178,53 @@ export function registerRestRoutes(app: Express) {
         res.status(409).json({ error: "Service is unavailable" });
         return;
       }
-      const urls = JSON.parse(process.env.PAYONEER_URLS || "{}");
-      const checkoutUrl = typeof urls[service.id] === "string" ? urls[service.id] : typeof urls.default === "string" ? urls.default : "";
-      if (!checkoutUrl || !/^https:\/\//i.test(checkoutUrl)) {
-        res.status(503).json({ error: "Payoneer checkout is not configured for this service" });
-        return;
+
+      let checkoutUrl = "";
+
+      // 1. Check individual environment variables
+      const titleLower = service.title.toLowerCase();
+      const idLower = service.id.toLowerCase();
+
+      if (titleLower.includes("1000") || idLower.includes("1000")) {
+        checkoutUrl = process.env.PAYONEER_1000POINTS_URL || "";
+      } else if (titleLower.includes("500") || idLower.includes("500")) {
+        checkoutUrl = process.env.PAYONEER_500POINTS_URL || "";
+      } else if (titleLower.includes("bot") || idLower.includes("bot")) {
+        checkoutUrl = process.env.PAYONEER_BOT_URL || "";
+      } else if (titleLower.includes("website") || idLower.includes("website") || titleLower.includes("موقع")) {
+        checkoutUrl = process.env.PAYONEER_CUSTOM_WEBSITE_URL || process.env["PAYONEER_Custom website development_URL"] || "";
       }
-      res.json({ checkout_url: checkoutUrl, payment_provider: "payoneer", user_id: user.id, service_id: service.id });
+
+      // 2. Check direct service ID variable (e.g. PAYONEER_SERVICE_123_URL)
+      if (!checkoutUrl) {
+        const directEnvKey = `PAYONEER_${service.id.toUpperCase().replace(/[^A-Z0-9]/g, "_")}_URL`;
+        checkoutUrl = process.env[directEnvKey] || "";
+      }
+
+      // 3. Check JSON PAYONEER_URLS map
+      if (!checkoutUrl) {
+        try {
+          const urls = JSON.parse(process.env.PAYONEER_URLS || "{}");
+          checkoutUrl = typeof urls[service.id] === "string" ? urls[service.id] : typeof urls.default === "string" ? urls.default : "";
+        } catch {}
+      }
+
+      // 4. Default Payoneer link fallback
+      if (!checkoutUrl) {
+        checkoutUrl = process.env.PAYONEER_1000POINTS_URL || process.env.PAYONEER_CUSTOM_WEBSITE_URL || "https://payoneer.com";
+      }
+
+      const cryptoAddress = process.env.OKX_USDT_TRC20_ADDRESS || "TKAWh7LiJY8wEcQ9r6N9e9DasfEEXxDStu";
+
+      res.json({
+        checkout_url: checkoutUrl,
+        payment_provider: "payoneer",
+        crypto_address: cryptoAddress,
+        crypto_network: "USDT TRC20",
+        user_id: user.id,
+        service_id: service.id,
+        price_usd: service.usdPrice,
+      });
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : "Unable to create checkout" });
     }

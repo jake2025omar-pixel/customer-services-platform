@@ -153,7 +153,7 @@ function vitePluginManusDebugCollector(): Plugin {
 const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
 
 export default defineConfig({
- base: "/customer-services-platform/",
+  base: "/",
   plugins,
   resolve: {
     alias: {
@@ -170,16 +170,9 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
-    host: true,
-    allowedHosts: [
-      ".manuspre.computer",
-      ".manus.computer",
-      ".manus-asia.computer",
-      ".manuscomputer.ai",
-      ".manusvm.computer",
-      "localhost",
-      "127.0.0.1",
-    ],
+    host: "0.0.0.0",
+    port: 3000,
+    allowedHosts: true,
     fs: {
       strict: true,
       deny: ["**/.*"],

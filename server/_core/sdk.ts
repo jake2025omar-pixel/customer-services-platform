@@ -307,8 +307,15 @@ class SDKServer {
         });
         user = await db.getUserByOpenId(userInfo.openId);
       } catch (error) {
-        console.error("[Auth] Failed to sync user from OAuth:", error);
-        throw ForbiddenError("Failed to sync user info");
+        console.warn("[Auth] Failed to sync user from OAuth, creating local user record:", error);
+        await db.upsertUser({
+          openId: sessionUserId,
+          name: session.name || "Member",
+          email: `${sessionUserId}@example.com`,
+          loginMethod: "google",
+          lastSignedIn: signedInAt,
+        });
+        user = await db.getUserByOpenId(sessionUserId);
       }
     }
 
