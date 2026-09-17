@@ -450,9 +450,9 @@
   // Fetch Interception
   // ==========================================================================
 
-  var originalFetch = window.fetch.bind(window);
+  var originalFetch = typeof window !== "undefined" && typeof window.fetch === "function" ? window.fetch.bind(window) : null;
 
-  window.fetch = function (input, init) {
+  var customFetch = function (input, init) {
     init = init || {};
     var startTime = Date.now();
     // Handle string, Request object, or URL object
@@ -589,6 +589,23 @@
         throw error;
       });
   };
+
+  if (originalFetch) {
+    try {
+      Object.defineProperty(window, "fetch", {
+        value: customFetch,
+        writable: true,
+        configurable: true,
+        enumerable: true,
+      });
+    } catch (e1) {
+      try {
+        window.fetch = customFetch;
+      } catch (e2) {
+        // window.fetch has only a getter or is non-configurable in sandbox iframe
+      }
+    }
+  }
 
   // ==========================================================================
   // XHR Interception
