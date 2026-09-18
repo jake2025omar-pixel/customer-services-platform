@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch, useLocation } from "wouter";
+import { Route, Switch, Router, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -25,7 +25,12 @@ const navItems = [
 
 function GoogleIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className}>
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      className={`${className} shrink-0 inline-block align-middle`}
+      aria-hidden="true"
+    >
       <path
         fill="#4285F4"
         d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
@@ -303,22 +308,25 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
+  const routerBase = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <Shell>
-            <Switch>
-              <Route path="/" component={Home} />
-              <Route path="/contests" component={Contests} />
-              <Route path="/rewarded-ads" component={RewardedAds} />
-              <Route path="/services" component={Services} />
-              <Route path="/admin/services" component={AdminServices} />
-              <Route path="/admin" component={Admin} />
-              <Route component={NotFound} />
-            </Switch>
-          </Shell>
+          <Router base={routerBase}>
+            <Shell>
+              <Switch>
+                <Route path="/" component={Home} />
+                <Route path="/contests" component={Contests} />
+                <Route path="/rewarded-ads" component={RewardedAds} />
+                <Route path="/services" component={Services} />
+                <Route path="/admin/services" component={AdminServices} />
+                <Route path="/admin" component={Admin} />
+                <Route component={NotFound} />
+              </Switch>
+            </Shell>
+          </Router>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
