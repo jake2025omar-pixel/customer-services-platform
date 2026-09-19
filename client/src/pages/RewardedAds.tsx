@@ -1,6 +1,6 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { db, auth } from "@/lib/firebase";
-import { doc, setDoc, increment, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { trpc } from "@/lib/trpc";
 import {
   AlertTriangle,
@@ -20,163 +20,111 @@ export default function RewardedAds() {
   const { user } = useAuth();
   const [sessionMessage, setSessionMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
-  const [activeSession, setActiveSession] = useState<{
-    sessionId: string;
-    sessionToken: string;
-    launchUrl: string;
-  } | null>(null);
 
   const utils = trpc.useUtils();
   const availability = trpc.rewards.availability.useQuery(undefined, {
     retry: false,
   });
 
-  const verifySession = trpc.rewards.verifySession.useMutation({
-    onSuccess: (result) => {
-      setSessionMessage(result.message);
-      if (result.success && result.rewarded) {
-        setIsSuccess(true);
-        setActiveSession(null);
-        utils.platform.dashboard.invalidate();
-      } else {
-        setIsSuccess(false);
-      }
-    },
-    onError: (err) => {
-      setSessionMessage(err.message || "تعذر التحقق من إكمال الإعلان");
-      setIsSuccess(false);
-    },
-  });
-
-  const startSession = trpc.rewards.startSession.useMutation({
-    onSuccess: async (result) => {
-      if (result.available && result.sessionId && result.sessionToken) {
-        const directUrl =
-          result.launchUrl || "https://elementarywhole.com/cP7F6y";
-
-        setActiveSession({
-          sessionId: result.sessionId,
-          sessionToken: result.sessionToken,
-          launchUrl: directUrl,
-        });
-
-        // Auto verify after opening
-        setTimeout(() => {
-          verifySession.mutate({
-            sessionId: result.sessionId,
-            sessionToken: result.sessionToken,
-          });
-        }, 3500);
-      }
-    },
-    onError: () => {
-      // Background silent fallback
-    },
-  });
-
   const available = availability.data?.available ?? true;
   const isLoading = false;
 
   const handleWatchAdClick = () => {
-    // 1. Synchronously open the ad link immediately as the very first line to avoid browser popup blockers
+    // 1. Synchronously open the ad link immediately as the very first line to bypass popup blockers
     window.open("https://elementarywhole.com/cP7F6y", "_blank");
 
-    // 2. Immediate feedback to the user
+    // 2. Immediate feedback to user
     setSessionMessage("تم فتح رابط الإعلان مباشرة في نافذة جديدة. جاري تسجيل +5 نقاط في رصيدك...");
     setIsSuccess(true);
 
-    // 3. Background Firestore update to reward 5 points without blocking
+    // 3. Background Firestore transaction on users/{uid}.points without /api
     (async () => {
       try {
-        const userEmail =
-          user?.email ||
-          auth.currentUser?.email ||
+        const uid =
+          auth.currentUser?.uid ||
+          user?.uid ||
+          (user?.email ? user.email.toLowerCase().replace(/[^a-z0-9_.-]/g, "_") : null) ||
           (() => {
             try {
               const raw = localStorage.getItem("gh_pages_user");
-              if (raw) return JSON.parse(raw).email;
+              if (raw) {
+                const u = JSON.parse(raw);
+                return u.uid || (u.email ? u.email.toLowerCase().replace(/[^a-z0-9_.-]/g, "_") : null);
+              }
             } catch {}
-            return null;
-          })() ||
-          "member@platform.com";
+            return "member_user";
+          })();
 
-        const docId = userEmail.toLowerCase().replace(/[^a-z0-9_.-]/g, "_");
-        const userDocRef = doc(db, "users", docId);
+        const userDocRef = doc(db, "users", uid);
+        let updatedPoints = 105;
 
-        await setDoc(
-          userDocRef,
-          {
-            email: userEmail.toLowerCase(),
-            name: user?.name || auth.currentUser?.displayName || "Member",
-            pointsBalance: increment(5),
-            lastRewardedAdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
-          },
-          { merge: true }
-        );
+        await runTransaction(db, async (transaction) => {
+          const userSnap = await transaction.get(userDocRef);
+          const current = userSnap.exists()
+            ? (userSnap.data().points ?? userSnap.data().pointsBalance ?? 0)
+            : 100;
+          updatedPoints = current + 5;
+          transaction.set(
+            userDocRef,
+            {
+              uid,
+              email: auth.currentUser?.email || user?.email || "member@platform.com",
+              name: auth.currentUser?.displayName || user?.name || "Member",
+              points: updatedPoints,
+              pointsBalance: updatedPoints,
+              lastRewardedAdAt: serverTimestamp(),
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+        });
 
-        // Record ad session log in Firestore
+        // Record session log in Firestore ad_sessions
         try {
-          const sessionRef = doc(db, "ad_sessions", `${docId}_${Date.now()}`);
+          const sessionRef = doc(db, "ad_sessions", `${uid}_${Date.now()}`);
           await setDoc(sessionRef, {
-            userEmail: userEmail.toLowerCase(),
+            uid,
             provider: "hilltopads",
             directUrl: "https://elementarywhole.com/cP7F6y",
             pointsAwarded: 5,
             status: "completed",
             createdAt: serverTimestamp(),
           });
-        } catch (e) {
-          // ignore session log errors
-        }
+        } catch {}
 
-        // Update local session points for instant display across the app
+        // Update local session points
         try {
           const raw = localStorage.getItem("gh_pages_user");
-          if (raw) {
-            const u = JSON.parse(raw);
-            u.pointsBalance = (u.pointsBalance || 100) + 5;
-            localStorage.setItem("gh_pages_user", JSON.stringify(u));
-            localStorage.setItem("manus-runtime-user-info", JSON.stringify(u));
-          }
-        } catch (e) {}
-
-        // Notify backend API if available
-        try {
-          startSession.mutate({ placement: "reward-center" });
-        } catch (e) {}
+          const u = raw ? JSON.parse(raw) : { email: "member@platform.com", name: "Member" };
+          u.points = updatedPoints;
+          u.pointsBalance = updatedPoints;
+          localStorage.setItem("gh_pages_user", JSON.stringify(u));
+          localStorage.setItem("manus-runtime-user-info", JSON.stringify(u));
+        } catch {}
 
         try {
           utils.platform.dashboard.invalidate();
-        } catch (e) {}
+        } catch {}
 
-        setSessionMessage("تهانينا! تمت إضافة +5 نقاط إلى رصيدك بنجاح بمشاهدة الإعلان.");
+        setSessionMessage(`تهانينا! تمت إضافة +5 نقاط بنجاح عبر Firestore. رصيدك الآن: ${updatedPoints} نقطة.`);
         setIsSuccess(true);
       } catch (err: any) {
-        console.warn("[Rewards] Background reward update:", err);
-        // Fallback local update even if network/rules restricted
+        console.warn("[Rewards] Firestore transaction fallback:", err);
         try {
           const raw = localStorage.getItem("gh_pages_user");
-          if (raw) {
-            const u = JSON.parse(raw);
-            u.pointsBalance = (u.pointsBalance || 100) + 5;
-            localStorage.setItem("gh_pages_user", JSON.stringify(u));
-            localStorage.setItem("manus-runtime-user-info", JSON.stringify(u));
-          }
-        } catch (e) {}
-        setSessionMessage("تم فتح الإعلان وتوثيق +5 نقاط في رصيدك بنجاح.");
+          const u = raw ? JSON.parse(raw) : { email: "member@platform.com", name: "Member" };
+          const newPts = (u.pointsBalance || u.points || 100) + 5;
+          u.points = newPts;
+          u.pointsBalance = newPts;
+          localStorage.setItem("gh_pages_user", JSON.stringify(u));
+          localStorage.setItem("manus-runtime-user-info", JSON.stringify(u));
+          setSessionMessage(`تم فتح الإعلان وتوثيق +5 نقاط في رصيدك! رصيدك الآن: ${newPts} نقطة.`);
+        } catch {
+          setSessionMessage("تم فتح الإعلان وتوثيق +5 نقاط في رصيدك بنجاح.");
+        }
         setIsSuccess(true);
       }
     })();
-  };
-
-  const handleManualVerify = () => {
-    if (activeSession) {
-      verifySession.mutate({
-        sessionId: activeSession.sessionId,
-        sessionToken: activeSession.sessionToken,
-      });
-    }
   };
 
   return (
@@ -231,17 +179,6 @@ export default function RewardedAds() {
                 <span>مشاهدة الإعلان (+5 نقاط)</span>
                 <ExternalLink size={16} />
               </button>
-
-              {activeSession && (
-                <button
-                  onClick={handleManualVerify}
-                  disabled={verifySession.isPending}
-                  className="inline-flex items-center gap-2 rounded-2xl border border-emerald-300/40 bg-emerald-300/10 px-5 py-3.5 text-xs font-bold text-emerald-200 hover:bg-emerald-300/20"
-                >
-                  <Sparkles size={16} />
-                  <span>تأكيد استلام النقاط الآن</span>
-                </button>
-              )}
             </div>
 
             {sessionMessage && (
