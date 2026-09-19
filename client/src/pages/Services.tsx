@@ -96,36 +96,117 @@ const BENTO_THEMES = [
     accentIcon: "🖤",
     graphicBadge: "VERIFIED NO PLASTIC",
   },
+  {
+    // Cyber Golden Yellow (#FACC15) - Store Orders Bot
+    bg: "bg-[#FACC15] border-2 border-black shadow-[6px_6px_0px_0px_black]",
+    textDark: true,
+    badgeBg: "bg-black/15 text-black font-black font-mono",
+    btnBg: "bg-black text-white hover:bg-neutral-900 shadow-[4px_4px_0px_0px_black]",
+    desktopSpan: "lg:col-span-6",
+    icon: ShoppingBag,
+    accentIcon: "🛍️🤖",
+    graphicBadge: "STORE BOT 24/7 ★",
+  },
 ];
 
+const SERVICES_CACHE_KEY = "seoul_services_cache_v3";
+
+function getCachedServices(): Service[] {
+  if (typeof window !== "undefined") {
+    try {
+      const cached = localStorage.getItem(SERVICES_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (
+          Array.isArray(parsed) &&
+          parsed.length >= DEFAULT_SERVICES.length &&
+          parsed.some((s: Service) => s.id === "store-order-bot")
+        ) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to read cached services", e);
+    }
+  }
+  return DEFAULT_SERVICES;
+}
+
+// Colorful Bento Skeleton Grid shown if ever loading
+function BentoSkeletonGrid() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 auto-rows-[minmax(340px,auto)] animate-pulse">
+      {BENTO_THEMES.map((theme, i) => (
+        <div
+          key={i}
+          className={`${theme.bg} ${theme.desktopSpan} rounded-[32px] p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden min-h-[340px] opacity-90`}
+        >
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="h-6 w-28 rounded-full bg-black/20" />
+              <div className="h-6 w-20 rounded-full bg-black/20" />
+            </div>
+            <div className="mt-5 h-40 sm:h-44 rounded-2xl bg-black/25 border border-black/10 flex items-center justify-center">
+              <span className="text-3xl opacity-60">{theme.accentIcon}</span>
+            </div>
+            <div className="mt-5 h-8 w-3/4 rounded-xl bg-black/20" />
+            <div className="mt-2 h-4 w-full rounded-lg bg-black/15" />
+            <div className="mt-1 h-4 w-2/3 rounded-lg bg-black/15" />
+          </div>
+          <div className="mt-6 pt-4 border-t-2 border-black/15 flex items-center justify-between">
+            <div className="h-7 w-20 rounded-full bg-black/20" />
+            <div className="h-10 w-28 rounded-full bg-black/30" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Services() {
-  const [services, setServices] = useState<Service[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Load 6 colorful Bento services immediately from cache or static default array with 0ms delay
+  const [services, setServices] = useState<Service[]>(getCachedServices);
+  const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    async function load() {
+    let isMounted = true;
+
+    async function syncServices() {
       try {
-        const data = await getFirestoreServices(true);
-        if (data && data.length > 0) {
-          setServices(data);
-        } else {
-          setServices(DEFAULT_SERVICES);
+        // Attempt background fetch from Firestore with strict 1.5 second timeout
+        const fetchPromise = getFirestoreServices(true);
+        const timeoutPromise = new Promise<Service[]>((_, reject) =>
+          setTimeout(() => reject(new Error("Firestore timeout (1.5s)")), 1500)
+        );
+
+        const remoteServices = await Promise.race([fetchPromise, timeoutPromise]);
+        if (isMounted && remoteServices && remoteServices.length > 0) {
+          setServices(remoteServices);
+          try {
+            localStorage.setItem(SERVICES_CACHE_KEY, JSON.stringify(remoteServices));
+          } catch {}
         }
       } catch (err) {
-        console.warn("[Services] Loaded default fallback services:", err);
-        setServices(DEFAULT_SERVICES);
+        console.warn("[Services] Firestore sync skipped or timed out, keeping instant Bento services:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
-    load();
+
+    syncServices();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Display services or 3 default trial services if empty
+  // Display services or 6 default trial services if empty
   const activeServices = services.length > 0 ? services : DEFAULT_SERVICES;
 
   const handleOrderClick = (service: Service) => {
@@ -151,13 +232,13 @@ export default function Services() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-[#CCFF00] text-black px-3.5 py-1 text-xs font-black font-mono uppercase tracking-wider shadow-[2px_2px_0px_0px_white]">
               <Sparkles size={14} />
-              <span>كتالوج الخدمات الرقمية / POP BENTO CATALOG</span>
+              <span>سيول للخدمات الرقمية / SAYOOL SERVICES</span>
             </div>
             <h1 className="mt-4 text-4xl font-black tracking-tight text-white sm:text-5xl">
               اختر الخدمة واطلبها فوراً
             </h1>
             <p className="mt-2.5 max-w-2xl text-base leading-relaxed text-neutral-400 font-mono text-xs sm:text-sm">
-              خدمات احترافية مضمونة مع دعم الدفع المباشر عبر Payoneer والعملات الرقمية (OKX USDT TRC20) أو بنقاط المكافآت.
+              خدمات احترافية مضمونة مع تسليم فوري ودعم الدفع المباشر عبر Payoneer والعملات الرقمية (OKX USDT TRC20) أو بنقاط المكافآت.
             </p>
           </div>
 
@@ -170,12 +251,7 @@ export default function Services() {
 
       {/* Bento Grid Container */}
       {loading ? (
-        <div className="grid min-h-72 place-items-center text-slate-400">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="animate-spin text-[#BEF264]" size={36} />
-            <p className="text-sm font-semibold text-[#8B8FA3]">جاري تحميل الخدمات...</p>
-          </div>
-        </div>
+        <BentoSkeletonGrid />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 auto-rows-[minmax(340px,auto)]">
           {activeServices.map((service, index) => {
@@ -222,6 +298,7 @@ export default function Services() {
                       src={service.imageUrl}
                       alt={service.title}
                       loading="lazy"
+                      referrerPolicy="no-referrer"
                       className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />

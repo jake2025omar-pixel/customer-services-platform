@@ -14,6 +14,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import storeBotImg from "@/assets/store_order_bot.jpg";
 
 export const isGitHubPages =
   typeof window !== "undefined" &&
@@ -64,7 +65,7 @@ export const DEFAULT_SERVICES: Service[] = [
   },
   {
     id: "pro-logo-design",
-    title: "تصميم شعار احترافي",
+    title: "تصميم شعار وهوية بصرية احترافية",
     description: "تصميم هوية بصرية وشعار احترافي وفريد يعكس هوية علامتك التجارية مع ملفات مفتوحة المصدر.",
     imageUrl: "https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=800&q=80",
     pointsPrice: 500,
@@ -75,12 +76,56 @@ export const DEFAULT_SERVICES: Service[] = [
   },
   {
     id: "personal-portfolio-site",
-    title: "موقع شخصي متكامل",
+    title: "موقع ويب شخصي متكامل ومتجاوب",
     description: "بناء وتصميم موقع ويب شخصي احترافي ومتجاوب مع جميع الشاشات لعرض أعمالك وخبراتك.",
     imageUrl: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=800&q=80",
     pointsPrice: 2000,
     usdPrice: "50",
     category: "مواقع",
+    stock: 999,
+    isActive: true,
+  },
+  {
+    id: "telegram-automation-bot",
+    title: "بوت تيليجرام تفاعلي وإشعارات فورية",
+    description: "برمجة روبوت تيليجرام ذكي للرد الآلي، إدارة القنوات، وتلقي الإشعارات الفورية للأنظمة والمتاجر.",
+    imageUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80",
+    pointsPrice: 1500,
+    usdPrice: "35",
+    category: "أتمتة",
+    stock: 999,
+    isActive: true,
+  },
+  {
+    id: "targeted-ads-campaign",
+    title: "حملة إعلانية ممولة ومستهدفة",
+    description: "إطلاق وإدارة حملة إعلانية مخصصة على منصات التواصل مع استهداف دقيق للجمهور المهتم.",
+    imageUrl: "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=800&q=80",
+    pointsPrice: 1200,
+    usdPrice: "25",
+    category: "تسويق",
+    stock: 999,
+    isActive: true,
+  },
+  {
+    id: "store-order-bot",
+    title: "بوت ذكي لاستلام طلبات المتاجر",
+    description: "بوت تفاعلي متطور (تيليجرام / واتساب / ويب) لاستلام ومعالجة طلبات المتاجر آلياً، حساب الإجمالي، إصدار الفواتير الفورية وإرسال إشعارات فورية للإدارة.",
+    imageUrl: storeBotImg,
+    pointsPrice: 2200,
+    usdPrice: "45",
+    category: "متاجر وأتمتة",
+    stock: 999,
+    isActive: true,
+  },
+  {
+    id: "cloud-solutions-consulting",
+    title: "استشارة تقنية وحلول سحابية فورية",
+    description: "جلسة استشارية متخصصة لتحسين أداء الأنظمة، حلول الربط البرمجي، والدعم الفني المباشر.",
+    imageUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=800&q=80",
+    pointsPrice: 1800,
+    usdPrice: "40",
+    category: "برمجة",
     stock: 999,
     isActive: true,
   },

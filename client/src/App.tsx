@@ -18,10 +18,10 @@ import { GoogleAccountChooserModal } from "./components/GoogleAccountChooserModa
 import { BentoShowcase } from "./components/BentoShowcase";
 
 const navItems = [
-  { href: "/", label: "نظرة عامة / Overview", icon: LayoutDashboard },
+  { href: "/", label: "تيك محلي / Tech", icon: LayoutDashboard },
   { href: "/contests", label: "المسابقات / Contests", icon: Trophy },
   { href: "/rewarded-ads", label: "المكافآت والإعلانات / Ads", icon: Gift },
-  { href: "/services", label: "الخدمات / Services", icon: Layers3 },
+  { href: "/services", label: "سيول / Services", icon: Layers3 },
 ];
 
 function GoogleIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -236,11 +236,9 @@ function Shell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav
-        className={`fixed bottom-3 left-3 right-3 z-30 grid gap-1.5 rounded-2xl border-2 border-black bg-[#0C0D14]/95 p-2 shadow-[4px_4px_0px_0px_black] backdrop-blur-xl lg:hidden ${
-          user?.role === "admin" ? "grid-cols-5" : "grid-cols-4"
-        }`}
+        className="fixed bottom-3 left-3 right-3 z-30 grid grid-cols-4 gap-1.5 rounded-2xl border-2 border-black bg-[#0C0D14]/95 p-2 shadow-[4px_4px_0px_0px_black] backdrop-blur-xl lg:hidden"
       >
-        {visibleNavItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           const active = current?.href === item.href;
           return (
