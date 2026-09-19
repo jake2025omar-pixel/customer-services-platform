@@ -12,10 +12,11 @@ import Services from "./pages/Services";
 import Admin from "@/pages/Admin";
 import AdminServices from "@/pages/AdminServices";
 import { useAuth } from "./_core/hooks/useAuth";
-import { LayoutDashboard, Trophy, Gift, Layers3, LogOut, Settings2, Sparkles, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Trophy, Gift, Layers3, LogOut, Settings2, Sparkles, ShieldCheck, Video } from "lucide-react";
 import { triggerGoogleSignIn } from "./lib/firebaseAuth";
 import { GoogleAccountChooserModal } from "./components/GoogleAccountChooserModal";
 import { BentoShowcase } from "./components/BentoShowcase";
+import { PromoVideoModal } from "./components/PromoVideoModal";
 
 const navItems = [
   { href: "/", label: "تيك محلي / Tech", icon: LayoutDashboard },
@@ -57,6 +58,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   const { user, loading, isAuthenticated, logout } = useAuth();
   const [isChooserOpen, setIsChooserOpen] = useState(false);
   const [chooserReason, setChooserReason] = useState<string | undefined>(undefined);
+  const [isPromoVideoOpen, setIsPromoVideoOpen] = useState(false);
 
   const handleGoogleLogin = () => {
     triggerGoogleSignIn((reason) => {
@@ -96,21 +98,30 @@ function Shell({ children }: { children: React.ReactNode }) {
               </span>
             </button>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => setIsPromoVideoOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-[#CCFF00] bg-[#12141D] px-4 py-2.5 text-xs font-black text-[#CCFF00] hover:bg-[#CCFF00] hover:text-black transition shadow-[3px_3px_0px_0px_white] active:translate-y-0.5"
+                title="مشاهدة الفيديو الترويجي ودليل استخدام المنصة"
+              >
+                <Video size={15} />
+                <span>فيديو ترويجي 🎬</span>
+              </button>
+
               <button
                 onClick={() => navigate("/services")}
-                className="hidden sm:inline-flex items-center gap-2 rounded-full border-2 border-white/20 bg-[#12141D] px-5 py-2.5 text-xs font-black text-white hover:border-[#CCFF00] transition"
+                className="hidden md:inline-flex items-center gap-2 rounded-full border-2 border-white/20 bg-[#12141D] px-5 py-2.5 text-xs font-black text-white hover:border-[#CCFF00] transition"
               >
                 استعراض الخدمات / Catalog
               </button>
 
               <button
                 onClick={handleGoogleLogin}
-                className="flex items-center gap-2.5 rounded-full bg-[#CCFF00] text-black px-6 py-2.5 text-sm font-black shadow-[4px_4px_0px_0px_white] hover:bg-[#b8e600] transition active:translate-y-0.5"
+                className="flex items-center gap-2.5 rounded-full bg-[#CCFF00] text-black px-5 sm:px-6 py-2.5 text-sm font-black shadow-[4px_4px_0px_0px_white] hover:bg-[#b8e600] transition active:translate-y-0.5"
               >
                 <GoogleIcon className="h-4 w-4" />
                 <span>ابدأ بجوجل</span>
-                <span className="text-xs font-normal opacity-85">/ Continue with Google</span>
+                <span className="hidden sm:inline text-xs font-normal opacity-85">/ Continue with Google</span>
               </button>
             </div>
           </div>
@@ -138,13 +149,23 @@ function Shell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <BentoShowcase onStartGoogleLogin={handleGoogleLogin} />
+          <BentoShowcase
+            onStartGoogleLogin={handleGoogleLogin}
+            onOpenPromoVideo={() => setIsPromoVideoOpen(true)}
+          />
         </main>
 
         <GoogleAccountChooserModal
           isOpen={isChooserOpen}
           onClose={() => setIsChooserOpen(false)}
           reason={chooserReason}
+        />
+
+        <PromoVideoModal
+          isOpen={isPromoVideoOpen}
+          onClose={() => setIsPromoVideoOpen(false)}
+          onNavigateSection={(href) => navigate(href)}
+          onStartGoogleLogin={handleGoogleLogin}
         />
       </div>
     );
@@ -216,8 +237,17 @@ function Shell({ children }: { children: React.ReactNode }) {
             </p>
             <h1 className="mt-0.5 text-xl font-black text-white">{current?.label || "Overview"}</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden rounded-full border-2 border-black bg-[#151722] px-3.5 py-1.5 font-mono text-xs font-bold text-[#CCFF00] sm:inline shadow-[2px_2px_0px_0px_black]">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <button
+              onClick={() => setIsPromoVideoOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-full border-2 border-[#CCFF00] bg-[#151722] px-3.5 py-1.5 font-mono text-xs font-black text-[#CCFF00] hover:bg-[#CCFF00] hover:text-black transition shadow-[2px_2px_0px_0px_black] active:translate-y-0.5"
+              title="مشاهدة الفيديو الترويجي ودليل استخدام المنصة"
+            >
+              <Video size={14} />
+              <span>فيديو ترويجي 🎬</span>
+            </button>
+
+            <span className="hidden rounded-full border-2 border-black bg-[#151722] px-3.5 py-1.5 font-mono text-xs font-bold text-[#CCFF00] md:inline shadow-[2px_2px_0px_0px_black]">
               ● VERIFIED MEMBER
             </span>
             <button
@@ -262,6 +292,13 @@ function Shell({ children }: { children: React.ReactNode }) {
         isOpen={isChooserOpen}
         onClose={() => setIsChooserOpen(false)}
         reason={chooserReason}
+      />
+
+      <PromoVideoModal
+        isOpen={isPromoVideoOpen}
+        onClose={() => setIsPromoVideoOpen(false)}
+        onNavigateSection={(href) => navigate(href)}
+        onStartGoogleLogin={handleGoogleLogin}
       />
     </div>
   );

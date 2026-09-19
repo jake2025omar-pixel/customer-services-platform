@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, ArrowUpRight, CheckCircle2, ShieldCheck, Zap, Globe, Coins, CreditCard } from "lucide-react";
+import { Sparkles, ArrowUpRight, CheckCircle2, ShieldCheck, Zap, Globe, Coins, CreditCard, Video } from "lucide-react";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import { DEFAULT_SERVICES, Service } from "@/lib/firestoreService";
 
@@ -10,6 +10,7 @@ interface BentoShowcaseProps {
     role?: string;
   } | null;
   onStartGoogleLogin?: () => void;
+  onOpenPromoVideo?: () => void;
   pointsBalance?: number;
 }
 
@@ -62,6 +63,7 @@ function HeartStarburstSvg() {
 export const BentoShowcase: React.FC<BentoShowcaseProps> = ({
   user,
   onStartGoogleLogin,
+  onOpenPromoVideo,
   pointsBalance = 100,
 }) => {
   const [services, setServices] = useState<Service[]>(DEFAULT_SERVICES);
@@ -214,6 +216,16 @@ export const BentoShowcase: React.FC<BentoShowcaseProps> = ({
                 <span className="text-xs text-[#CCFF00] font-normal">/ Instant Order</span>
                 <ArrowUpRight size={18} className="text-[#CCFF00]" />
               </button>
+
+              {onOpenPromoVideo && (
+                <button
+                  onClick={onOpenPromoVideo}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#CCFF00] text-black px-6 py-3.5 font-black text-sm border-2 border-black shadow-[4px_4px_0px_0px_black] hover:bg-[#b8e600] transition active:scale-95"
+                >
+                  <Video size={17} />
+                  <span>فيديو ترويجي ودليل الموقع 🎬</span>
+                </button>
+              )}
 
               {!user && onStartGoogleLogin && (
                 <button
