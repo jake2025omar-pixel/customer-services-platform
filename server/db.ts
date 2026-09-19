@@ -27,13 +27,40 @@ import { hashToken } from "./rewards";
 import { sendOrderToTelegram } from "../services/telegram_service.js";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _dbInitAttempted = false;
+
+function isValidMySQLUrl(urlString?: string): boolean {
+  if (!urlString) return false;
+  // Ignore local file paths or SQLite database paths often pre-configured in container environments
+  if (
+    urlString.startsWith("./") ||
+    urlString.startsWith("../") ||
+    urlString.startsWith("/") ||
+    urlString.endsWith(".db") ||
+    urlString.endsWith(".sqlite")
+  ) {
+    return false;
+  }
+  try {
+    const parsed = new URL(urlString);
+    return parsed.protocol === "mysql:" || parsed.protocol === "mysqls:";
+  } catch {
+    return false;
+  }
+}
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+  if (!_dbInitAttempted) {
+    _dbInitAttempted = true;
+    const dbUrl = process.env.DATABASE_URL?.trim();
+    if (dbUrl && isValidMySQLUrl(dbUrl)) {
+      try {
+        _db = drizzle(dbUrl);
+      } catch (error) {
+        console.warn("[Database] Failed to connect to MySQL, using in-memory store:", error);
+        _db = null;
+      }
+    } else {
       _db = null;
     }
   }

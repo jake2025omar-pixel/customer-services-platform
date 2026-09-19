@@ -15,6 +15,7 @@ import { useAuth } from "./_core/hooks/useAuth";
 import { LayoutDashboard, Trophy, Gift, Layers3, LogOut, Settings2, Sparkles, ShieldCheck } from "lucide-react";
 import { triggerGoogleSignIn } from "./lib/firebaseAuth";
 import { GoogleAccountChooserModal } from "./components/GoogleAccountChooserModal";
+import { BentoShowcase } from "./components/BentoShowcase";
 
 const navItems = [
   { href: "/", label: "نظرة عامة / Overview", icon: LayoutDashboard },
@@ -66,10 +67,10 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-[#08101c] text-slate-300">
+      <div className="min-h-screen grid place-items-center bg-[#080A0F] text-slate-300">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-300 border-t-transparent" />
-          <p className="text-sm font-semibold">جاري تهيئة مساحة العمل...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#BEF264] border-t-transparent" />
+          <p className="text-sm font-semibold text-[#8B8FA3]">جاري تهيئة مساحة العمل...</p>
         </div>
       </div>
     );
@@ -77,110 +78,67 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen overflow-hidden bg-[#08101c] text-slate-100">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(60,220,184,0.16),transparent_30%),radial-gradient(circle_at_20%_20%,rgba(101,92,255,0.18),transparent_28%)]" />
-        <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-5 py-5 sm:px-8">
-          <button onClick={() => navigate("/")} className="flex items-center gap-3 text-left">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-300 text-[#07131d] shadow-[0_0_28px_rgba(110,231,183,0.35)]">
-              <Sparkles size={20} />
-            </span>
-            <span>
-              <span className="block text-sm font-bold tracking-[0.2em] text-emerald-200">CUSTOMER</span>
-              <span className="block text-xs font-semibold tracking-[0.32em] text-slate-400">SERVICES</span>
-            </span>
-          </button>
+      <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
+        {/* Top Header */}
+        <header className="sticky top-0 z-30 border-b-2 border-black bg-black/90 px-5 py-4 backdrop-blur-md sm:px-8">
+          <div className="mx-auto flex max-w-7xl items-center justify-between">
+            <button onClick={() => navigate("/")} className="flex items-center gap-3 text-left">
+              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#CCFF00] text-black font-black shadow-[4px_4px_0px_0px_white]">
+                <Sparkles size={20} />
+              </span>
+              <span>
+                <span className="block text-sm font-black font-mono tracking-[0.2em] text-[#CCFF00]">
+                  CUSTOMER
+                </span>
+                <span className="block text-xs font-bold tracking-[0.3em] text-neutral-400">
+                  SERVICES
+                </span>
+              </span>
+            </button>
 
-          {/* Header Login Button: "تابع مع قوقل" */}
-          <button
-            onClick={handleGoogleLogin}
-            className="flex items-center gap-2.5 rounded-full border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-white/15 hover:border-emerald-300/40"
-          >
-            <GoogleIcon className="h-4 w-4" />
-            <span>تابع مع قوقل</span>
-            <span className="text-xs text-slate-400 font-normal">/ Continue with Google</span>
-          </button>
-        </header>
-
-        <main className="relative z-10 mx-auto grid max-w-7xl gap-10 px-5 pb-20 pt-10 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:pt-20">
-          <section>
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-emerald-200">
-              <span className="h-2 w-2 rounded-full bg-emerald-300" /> Digital services, rewards, and support
-            </div>
-            <h1 className="max-w-3xl text-5xl font-semibold leading-[1.05] tracking-tight text-white sm:text-7xl">
-              منصتك المتكاملة للخدمات الرقمية و<span className="text-emerald-300">المكافآت الحقيقية.</span>
-            </h1>
-            <p className="mt-7 max-w-xl text-lg leading-8 text-slate-300">
-              تمتع بخدمات رقمية موثوقة مع دعم كامل لطرق الدفع في اليمن والعالم (Payoneer & USDT TRC20)، بالإضافة إلى كسب النقاط المعتمدة من مشاهدة الإعلانات.
-            </p>
-
-            {/* Main Action Buttons including "ابدأ بجوجل" */}
-            <div className="mt-9 flex flex-wrap gap-4">
-              <button
-                onClick={handleGoogleLogin}
-                className="flex items-center gap-3 rounded-2xl bg-emerald-300 px-7 py-3.5 font-bold text-[#06131c] shadow-[0_12px_30px_rgba(110,231,183,0.22)] transition hover:-translate-y-0.5 hover:bg-emerald-200"
-              >
-                <GoogleIcon className="h-5 w-5" />
-                <span>ابدأ بجوجل</span>
-                <span className="text-xs font-medium text-[#071a17]">/ Start with Google</span>
-              </button>
-
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate("/services")}
-                className="rounded-2xl border border-white/10 bg-white/5 px-6 py-3.5 font-bold text-white transition hover:bg-white/10"
+                className="hidden sm:inline-flex items-center gap-2 rounded-full border-2 border-white/20 bg-[#12141D] px-5 py-2.5 text-xs font-black text-white hover:border-[#CCFF00] transition"
               >
-                استعراض الخدمات المتاحة
+                استعراض الخدمات / Catalog
+              </button>
+
+              <button
+                onClick={handleGoogleLogin}
+                className="flex items-center gap-2.5 rounded-full bg-[#CCFF00] text-black px-6 py-2.5 text-sm font-black shadow-[4px_4px_0px_0px_white] hover:bg-[#b8e600] transition active:translate-y-0.5"
+              >
+                <GoogleIcon className="h-4 w-4" />
+                <span>ابدأ بجوجل</span>
+                <span className="text-xs font-normal opacity-85">/ Continue with Google</span>
               </button>
             </div>
+          </div>
+        </header>
 
-            <div className="mt-6 flex items-center gap-2 text-xs text-slate-400">
-              <ShieldCheck size={16} className="text-emerald-300" />
-              <span>تسجيل دخول آمن وفوري بحساب Google الشخصي أو حساب الإدارة.</span>
+        {/* Hero Banner & Bento Grid Showcase */}
+        <main className="mx-auto max-w-7xl px-5 py-8 pb-24 sm:px-8 space-y-8">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 border-b-2 border-black/40 pb-6">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-[#CCFF00] text-black px-3.5 py-1 text-xs font-black font-mono uppercase tracking-wider mb-3 shadow-[2px_2px_0px_0px_white]">
+                <span>✦</span> 100% VERIFIED POP BENTO STORE
+              </div>
+              <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-none">
+                BENTO GRID <span className="text-[#CCFF00]">SERVICES.</span>
+              </h1>
             </div>
-          </section>
-
-          <section className="relative rounded-[32px] border border-white/10 bg-white/[0.055] p-5 shadow-2xl backdrop-blur-xl sm:p-7">
-            <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-emerald-300/15 blur-3xl" />
-            <div className="relative">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                  حالة المنصة والنظام
-                </span>
-                <span className="rounded-full bg-emerald-300/10 px-3 py-1 text-xs text-emerald-200">
-                  نشطة 100%
-                </span>
-              </div>
-              <div className="mt-8 rounded-3xl bg-[#0d1a2a] p-5">
-                <p className="text-sm text-slate-400">بوابة الخدمات المعتمدة</p>
-                <p className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                  Payoneer + OKX USDT نشط
-                </p>
-                <div className="mt-8 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.04] p-4">
-                    <p className="text-xs text-slate-500">الخدمات النشطة</p>
-                    <p className="mt-2 text-2xl font-semibold text-white">09</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.04] p-4">
-                    <p className="text-xs text-slate-500">حملات الجوائز</p>
-                    <p className="mt-2 text-2xl font-semibold text-white">02</p>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl bg-emerald-300/10 p-4">
-                  <p className="text-xs text-emerald-100/70">أمان فائق</p>
-                  <p className="mt-1 font-semibold text-emerald-100">تحقق عبر السيرفر</p>
-                </div>
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-xs text-slate-500">إعلانات HilltopAds</p>
-                  <p className="mt-1 font-semibold text-white">+5 نقاط معتمدة</p>
-                </div>
-                <div className="rounded-2xl bg-white/[0.04] p-4">
-                  <p className="text-xs text-slate-500">دعم اليمن</p>
-                  <p className="mt-1 font-semibold text-white">تحويل بنكي مباشر</p>
-                </div>
+            <div className="max-w-md">
+              <p className="text-xs sm:text-sm font-mono text-neutral-400 leading-relaxed">
+                منصة رقمية متكاملة تدعم Payoneer و محفظة OKX USDT TRC20 في اليمن والعالم، مع تسليم فوري وتوثيق مباشر على التيليجرام.
+              </p>
+              <div className="mt-3 flex items-center gap-2 text-xs font-bold text-[#CCFF00]">
+                <ShieldCheck size={16} />
+                <span>تسجيل دخول سريع وآمن بحساب Google الشخصي أو حساب الإدارة.</span>
               </div>
             </div>
-          </section>
+          </div>
+
+          <BentoShowcase onStartGoogleLogin={handleGoogleLogin} />
         </main>
 
         <GoogleAccountChooserModal
@@ -199,18 +157,18 @@ function Shell({ children }: { children: React.ReactNode }) {
   const current = visibleNavItems.find((item) => item.href === location);
 
   return (
-    <div className="min-h-screen bg-[#08101c] text-slate-100">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-white/[0.07] bg-[#0a1523]/90 px-4 py-6 backdrop-blur-xl lg:block">
+    <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r-2 border-black bg-[#0C0D14] px-4 py-6 lg:block shadow-[5px_0px_0px_0px_black]">
         <button onClick={() => navigate("/")} className="mb-10 flex w-full items-center gap-3 px-3 text-left">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-emerald-300 text-[#07131d]">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#CCFF00] text-black shadow-[3px_3px_0px_0px_black]">
             <Sparkles size={18} />
           </span>
           <span>
-            <span className="block text-xs font-bold tracking-[0.2em] text-emerald-200">CUSTOMER</span>
-            <span className="block text-[10px] font-semibold tracking-[0.3em] text-slate-400">SERVICES</span>
+            <span className="block text-xs font-black tracking-[0.2em] text-[#CCFF00]">CUSTOMER</span>
+            <span className="block text-[10px] font-bold tracking-[0.3em] text-neutral-400">SERVICES</span>
           </span>
         </button>
-        <nav className="space-y-2">
+        <nav className="space-y-2.5">
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active = current?.href === item.href;
@@ -218,10 +176,10 @@ function Shell({ children }: { children: React.ReactNode }) {
               <button
                 key={item.href}
                 onClick={() => navigate(item.href)}
-                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-black transition-all duration-200 border-2 ${
                   active
-                    ? "bg-emerald-300 text-[#07131d] shadow-[0_10px_24px_rgba(110,231,183,0.12)]"
-                    : "text-slate-400 hover:bg-white/5 hover:text-white"
+                    ? "bg-[#CCFF00] text-black border-black shadow-[4px_4px_0px_0px_black]"
+                    : "border-transparent text-neutral-400 hover:bg-[#151722] hover:text-white"
                 }`}
               >
                 <Icon size={18} />
@@ -231,18 +189,18 @@ function Shell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="absolute bottom-6 left-4 right-4">
-          <div className="mb-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
-            <p className="text-xs text-slate-500">تم تسجيل الدخول بواسطة</p>
-            <p className="mt-1 truncate text-sm font-semibold text-white">
+          <div className="mb-4 rounded-2xl border-2 border-black bg-[#151722] p-4 shadow-[3px_3px_0px_0px_black]">
+            <p className="font-mono text-xs text-neutral-400">المستخدم النشط</p>
+            <p className="mt-1 truncate text-sm font-black text-white">
               {user?.name || user?.email || "Google member"}
             </p>
-            <p className="mt-1 text-xs text-emerald-200">
-              {user?.role === "admin" ? "مدير المنصة (Administrator)" : "عضو نشط (Member)"}
+            <p className="mt-1 font-mono text-xs text-[#CCFF00] font-black">
+              {user?.role === "admin" ? "مدير المنصة / ADMIN" : "عضو نشط / MEMBER"}
             </p>
           </div>
           <button
             onClick={() => logout()}
-            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-500 transition hover:bg-white/5 hover:text-white"
+            className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold text-neutral-400 transition hover:bg-[#151722] hover:text-white"
           >
             <LogOut size={17} />
             تسجيل الخروج / Sign out
@@ -251,23 +209,25 @@ function Shell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex items-center justify-between border-b border-white/[0.07] bg-[#08101c]/85 px-5 py-4 backdrop-blur-xl sm:px-8">
+        <header className="sticky top-0 z-20 flex items-center justify-between border-b-2 border-black bg-black/90 px-5 py-4 backdrop-blur-md sm:px-8">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">Workspace</p>
-            <h1 className="mt-1 text-xl font-semibold text-white">{current?.label || "Overview"}</h1>
+            <p className="font-mono text-xs font-black uppercase tracking-[0.2em] text-[#CCFF00]">
+              WORKSPACE
+            </p>
+            <h1 className="mt-0.5 text-xl font-black text-white">{current?.label || "Overview"}</h1>
           </div>
           <div className="flex items-center gap-3">
-            <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-slate-400 sm:inline">
-              Secure member area
+            <span className="hidden rounded-full border-2 border-black bg-[#151722] px-3.5 py-1.5 font-mono text-xs font-bold text-[#CCFF00] sm:inline shadow-[2px_2px_0px_0px_black]">
+              ● VERIFIED MEMBER
             </span>
             <button
               onClick={() => logout()}
-              className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden"
+              className="grid h-10 w-10 place-items-center rounded-xl border-2 border-black bg-[#151722] text-neutral-400 hover:text-white lg:hidden"
               aria-label="Sign out"
             >
               <LogOut size={17} />
             </button>
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-300/15 text-sm font-bold text-emerald-200">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#CCFF00] text-black font-black text-sm border-2 border-black shadow-[3px_3px_0px_0px_black]">
               {(user?.name || "M").slice(0, 1).toUpperCase()}
             </div>
           </div>
@@ -276,7 +236,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav
-        className={`fixed bottom-3 left-3 right-3 z-30 grid gap-1 rounded-2xl border border-white/10 bg-[#0d1a2a]/95 p-2 shadow-2xl backdrop-blur-xl lg:hidden ${
+        className={`fixed bottom-3 left-3 right-3 z-30 grid gap-1.5 rounded-2xl border-2 border-black bg-[#0C0D14]/95 p-2 shadow-[4px_4px_0px_0px_black] backdrop-blur-xl lg:hidden ${
           user?.role === "admin" ? "grid-cols-5" : "grid-cols-4"
         }`}
       >
@@ -287,8 +247,10 @@ function Shell({ children }: { children: React.ReactNode }) {
             <button
               key={item.href}
               onClick={() => navigate(item.href)}
-              className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-semibold ${
-                active ? "bg-emerald-300 text-[#07131d]" : "text-slate-500"
+              className={`flex flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-black transition-all ${
+                active
+                  ? "bg-[#CCFF00] text-black border border-black shadow-[2px_2px_0px_0px_black]"
+                  : "text-neutral-400 hover:text-white"
               }`}
             >
               <Icon size={17} />

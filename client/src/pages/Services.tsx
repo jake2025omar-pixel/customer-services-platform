@@ -31,70 +31,70 @@ type CheckoutData = {
 // Bento Card Color Themes according to specifications
 const BENTO_THEMES = [
   {
-    // Electric Blue (#3B82F6) - 1000 Followers / Social Media
-    bg: "bg-[#3B82F6]",
+    // Electric Royal Blue (#0066FF) - Featured Hub
+    bg: "bg-[#0066FF] border-2 border-black shadow-[6px_6px_0px_0px_black]",
     textDark: false,
-    badgeBg: "bg-white/20 text-white",
-    btnBg: "bg-black text-white hover:bg-neutral-900",
+    badgeBg: "bg-white/20 text-white font-mono",
+    btnBg: "bg-black text-white hover:bg-neutral-900 shadow-[4px_4px_0px_0px_black]",
     desktopSpan: "lg:col-span-7",
     icon: TrendingUp,
-    accentIcon: "🦆", // Yellow duck aesthetic mentioned in prompt
-    graphicBadge: "+1000 FOLLOWERS",
+    accentIcon: "🦆✨",
+    graphicBadge: "POPULAR ★",
   },
   {
-    // Neon Green (#BEF264) - Logo Design / Creative
-    bg: "bg-[#BEF264]",
+    // Neon Lime Green (#CCFF00) - Logo Design / Creative
+    bg: "bg-[#CCFF00] border-2 border-black shadow-[6px_6px_0px_0px_black]",
     textDark: true,
-    badgeBg: "bg-black/10 text-black",
-    btnBg: "bg-black text-white hover:bg-neutral-900",
+    badgeBg: "bg-black/15 text-black font-black font-mono",
+    btnBg: "bg-black text-white hover:bg-neutral-900 shadow-[4px_4px_0px_0px_black]",
     desktopSpan: "lg:col-span-5",
     icon: Palette,
-    accentIcon: "✦",
-    graphicBadge: "PRO BRANDING",
+    accentIcon: "🌸",
+    graphicBadge: "INSTANT => VERIFIED",
   },
   {
-    // Vibrant Orange (#FB923C) - Personal Site / Web
-    bg: "bg-[#FB923C]",
-    textDark: true,
-    badgeBg: "bg-black/10 text-black",
-    btnBg: "bg-black text-white hover:bg-neutral-900",
+    // Vibrant Red/Orange (#FF3B00) - Web & Systems
+    bg: "bg-[#FF3B00] border-2 border-black shadow-[6px_6px_0px_0px_black]",
+    textDark: false,
+    badgeBg: "bg-black/25 text-white font-black font-mono",
+    btnBg: "bg-black text-white hover:bg-neutral-900 shadow-[4px_4px_0px_0px_black]",
     desktopSpan: "lg:col-span-12",
     icon: Globe,
-    accentIcon: "★", // White star graphic mentioned in prompt
-    graphicBadge: "FULL RESPONSIVE WEB",
+    accentIcon: "💥",
+    graphicBadge: "HOT DEAL ★",
   },
   {
-    // Vibrant Purple (#A855F7)
-    bg: "bg-[#A855F7]",
+    // Hot Pink (#EC4899)
+    bg: "bg-[#EC4899] border-2 border-black shadow-[6px_6px_0px_0px_black]",
+    textDark: true,
+    badgeBg: "bg-black/20 text-black font-black font-mono",
+    btnBg: "bg-black text-white hover:bg-neutral-900 shadow-[4px_4px_0px_0px_black]",
+    desktopSpan: "lg:col-span-6",
+    icon: Sparkles,
+    accentIcon: "😊",
+    graphicBadge: "SATISFACTION 100%",
+  },
+  {
+    // Electric Purple (#7C3AED)
+    bg: "bg-[#7C3AED] border-2 border-black shadow-[6px_6px_0px_0px_black]",
     textDark: false,
-    badgeBg: "bg-white/20 text-white",
-    btnBg: "bg-black text-white hover:bg-neutral-900",
+    badgeBg: "bg-black/25 text-white font-bold font-mono",
+    btnBg: "bg-black text-white hover:bg-neutral-900 shadow-[4px_4px_0px_0px_black]",
     desktopSpan: "lg:col-span-6",
     icon: Zap,
     accentIcon: "⚡",
     graphicBadge: "PREMIUM SPEED",
   },
   {
-    // Vibrant Pink (#EC4899)
-    bg: "bg-[#EC4899]",
-    textDark: false,
-    badgeBg: "bg-white/20 text-white",
-    btnBg: "bg-black text-white hover:bg-neutral-900",
+    // Pure White Card (#FFFFFF)
+    bg: "bg-white border-2 border-black shadow-[6px_6px_0px_0px_black]",
+    textDark: true,
+    badgeBg: "bg-black text-white font-mono",
+    btnBg: "bg-black text-white hover:bg-neutral-900 shadow-[4px_4px_0px_0px_black]",
     desktopSpan: "lg:col-span-6",
     icon: Star,
-    accentIcon: "♥",
-    graphicBadge: "VIP SERVICE",
-  },
-  {
-    // Vibrant Yellow (#FACC15)
-    bg: "bg-[#FACC15]",
-    textDark: true,
-    badgeBg: "bg-black/10 text-black",
-    btnBg: "bg-black text-white hover:bg-neutral-900",
-    desktopSpan: "lg:col-span-6",
-    icon: Sparkles,
-    accentIcon: "✦",
-    graphicBadge: "EXCLUSIVE DEAL",
+    accentIcon: "🖤",
+    graphicBadge: "VERIFIED NO PLASTIC",
   },
 ];
 
@@ -144,26 +144,26 @@ export default function Services() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080A0F] text-slate-100 -mx-5 -my-7 px-5 py-7 sm:-mx-8 sm:px-8 pb-32" dir="rtl">
+    <div className="min-h-screen bg-black text-white -mx-5 -my-7 px-5 py-7 sm:-mx-8 sm:px-8 pb-32 selection:bg-white selection:text-black" dir="rtl">
       {/* Header Section */}
-      <section className="mb-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <section className="mb-10">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-black/40 pb-6">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-1 text-xs font-bold text-emerald-300">
-              <Sparkles size={13} />
-              <span>كتالوج الخدمات الرقمية / Digital Services</span>
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#CCFF00] text-black px-3.5 py-1 text-xs font-black font-mono uppercase tracking-wider shadow-[2px_2px_0px_0px_white]">
+              <Sparkles size={14} />
+              <span>كتالوج الخدمات الرقمية / POP BENTO CATALOG</span>
             </div>
-            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            <h1 className="mt-4 text-4xl font-black tracking-tight text-white sm:text-5xl">
               اختر الخدمة واطلبها فوراً
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
+            <p className="mt-2.5 max-w-2xl text-base leading-relaxed text-neutral-400 font-mono text-xs sm:text-sm">
               خدمات احترافية مضمونة مع دعم الدفع المباشر عبر Payoneer والعملات الرقمية (OKX USDT TRC20) أو بنقاط المكافآت.
             </p>
           </div>
 
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs text-slate-300">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>الدفع عبر Payoneer + OKX USDT متاح ومباشر</span>
+          <div className="flex items-center gap-3 rounded-full border-2 border-black bg-[#151722] px-5 py-3 text-xs font-mono font-black text-[#CCFF00] shadow-[3px_3px_0px_0px_black]">
+            <span className="flex h-2.5 w-2.5 rounded-full bg-[#CCFF00] animate-pulse" />
+            <span>PAYONEER + OKX USDT TRC20 ACTIVE</span>
           </div>
         </div>
       </section>
@@ -172,12 +172,12 @@ export default function Services() {
       {loading ? (
         <div className="grid min-h-72 place-items-center text-slate-400">
           <div className="flex flex-col items-center gap-3">
-            <Loader2 className="animate-spin text-emerald-300" size={32} />
-            <p className="text-sm font-medium">جاري تحميل الخدمات...</p>
+            <Loader2 className="animate-spin text-[#BEF264]" size={36} />
+            <p className="text-sm font-semibold text-[#8B8FA3]">جاري تحميل الخدمات...</p>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 auto-rows-[minmax(340px,auto)]">
           {activeServices.map((service, index) => {
             const theme = BENTO_THEMES[index % BENTO_THEMES.length];
             const isDarkText = theme.textDark;
@@ -186,12 +186,12 @@ export default function Services() {
             return (
               <div
                 key={service.id}
-                className={`${theme.bg} ${theme.desktopSpan} rounded-[32px] p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden transition-all duration-200 ease-out hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(0,0,0,0.5)] cursor-pointer group`}
+                className={`${theme.bg} ${theme.desktopSpan} rounded-[32px] p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden transition-transform duration-200 ease-out hover:scale-[1.01] active:scale-[1.01] cursor-pointer group`}
                 style={{ willChange: "transform" }}
               >
                 {/* Background decorative watermark graphic */}
                 <div
-                  className="absolute -left-6 -bottom-6 text-9xl select-none pointer-events-none opacity-15 font-black transition-transform duration-300 group-hover:scale-110"
+                  className="absolute -left-6 -bottom-6 text-[120px] sm:text-[150px] select-none pointer-events-none opacity-20 font-black transition-transform duration-300 group-hover:scale-110 leading-none tracking-tighter"
                   aria-hidden="true"
                 >
                   {theme.accentIcon}
@@ -208,7 +208,7 @@ export default function Services() {
                     </span>
 
                     <span
-                      className={`text-xs font-extrabold tracking-wider px-2.5 py-0.5 rounded-md ${
+                      className={`text-xs font-black tracking-wider px-3 py-1 rounded-full ${
                         isDarkText ? "bg-black/15 text-black" : "bg-white/20 text-white"
                       }`}
                     >
@@ -217,7 +217,7 @@ export default function Services() {
                   </div>
 
                   {/* Service Visual Preview / Graphic */}
-                  <div className="mt-5 relative h-40 sm:h-44 rounded-2xl overflow-hidden shadow-inner bg-black/10">
+                  <div className="mt-5 relative h-40 sm:h-44 rounded-2xl overflow-hidden shadow-inner bg-black/15 border border-black/10">
                     <img
                       src={service.imageUrl}
                       alt={service.title}
@@ -233,7 +233,7 @@ export default function Services() {
                   {/* Service Title */}
                   <h3
                     className={`mt-5 text-2xl sm:text-3xl font-black tracking-tight leading-snug ${
-                      isDarkText ? "text-slate-950" : "text-white"
+                      isDarkText ? "text-black" : "text-white"
                     }`}
                   >
                     {service.title}
@@ -242,7 +242,7 @@ export default function Services() {
                   {/* Short 2-line Description */}
                   <p
                     className={`mt-2 text-sm leading-relaxed line-clamp-2 ${
-                      isDarkText ? "text-slate-800" : "text-slate-100/90"
+                      isDarkText ? "text-black/80 font-medium" : "text-slate-100/90"
                     }`}
                   >
                     {service.description}
@@ -256,15 +256,15 @@ export default function Services() {
                     {service.pointsPrice !== null && (
                       <div>
                         <span
-                          className={`block text-[11px] font-bold uppercase tracking-wider ${
-                            isDarkText ? "text-slate-750 opacity-80" : "text-white/80"
+                          className={`block text-[10px] font-black uppercase tracking-wider ${
+                            isDarkText ? "text-black/70" : "text-white/75"
                           }`}
                         >
                           بالنقاط
                         </span>
                         <span
-                          className={`text-lg sm:text-xl font-black ${
-                            isDarkText ? "text-slate-950" : "text-white"
+                          className={`text-xl sm:text-2xl font-black ${
+                            isDarkText ? "text-black" : "text-white"
                           }`}
                         >
                           {service.pointsPrice}{" "}
@@ -273,17 +273,17 @@ export default function Services() {
                       </div>
                     )}
 
-                    <div className={service.pointsPrice !== null ? "border-r border-black/15 pr-4" : ""}>
+                    <div className={service.pointsPrice !== null ? "border-r border-black/20 pr-4" : ""}>
                       <span
-                        className={`block text-[11px] font-bold uppercase tracking-wider ${
-                          isDarkText ? "text-slate-750 opacity-80" : "text-white/80"
+                        className={`block text-[10px] font-black uppercase tracking-wider ${
+                          isDarkText ? "text-black/70" : "text-white/75"
                         }`}
                       >
                         السعر كاش
                       </span>
                       <span
-                        className={`text-lg sm:text-xl font-black ${
-                          isDarkText ? "text-slate-950" : "text-white"
+                        className={`text-xl sm:text-2xl font-black ${
+                          isDarkText ? "text-black" : "text-white"
                         }`}
                       >
                         ${service.usdPrice || "10"}
@@ -299,7 +299,7 @@ export default function Services() {
                       handleOrderClick(service);
                     }}
                     disabled={busyId === service.id}
-                    className={`inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-black shadow-xl transition-all duration-200 active:scale-95 ${theme.btnBg}`}
+                    className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-black transition-all duration-200 active:scale-95 ${theme.btnBg}`}
                   >
                     {busyId === service.id ? (
                       <Loader2 className="animate-spin" size={16} />
@@ -316,19 +316,19 @@ export default function Services() {
       )}
 
       {/* Payoneer + OKX USDT Notice Banner */}
-      <section className="mt-12 rounded-[28px] border border-white/10 bg-[#0d1624] p-6 sm:p-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <section className="mt-14 rounded-[32px] border border-[#1E2233] bg-[#12141D] p-6 sm:p-8 shadow-2xl">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
           <div className="flex items-center gap-4">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-300 text-[#07131d] font-bold text-lg">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#BEF264] text-black font-black text-lg shadow-[3px_3px_0px_0px_black]">
               ✓
             </div>
             <div>
-              <h4 className="text-base font-bold text-white">
+              <h4 className="text-base font-black text-white">
                 دفع مباشر ومضمون 100% (Payoneer & OKX USDT TRC20)
               </h4>
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-[#8B8FA3]">
                 يعمل في اليمن وكافة الدول دون حجب. عنوان المحفظة:{" "}
-                <span className="font-mono text-emerald-300 select-all">
+                <span className="font-mono text-[#BEF264] font-bold select-all">
                   TKAWh7LiJY8wEcQ9r6N9e9DasfEEXxDStu
                 </span>
               </p>
@@ -336,10 +336,10 @@ export default function Services() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300">
+            <span className="rounded-full border border-[#1E2233] bg-[#1A1D29] px-4 py-1.5 text-xs font-bold text-slate-300">
               شبكة TRC20
             </span>
-            <span className="rounded-xl border border-emerald-300/30 bg-emerald-300/10 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+            <span className="rounded-full border border-[#BEF264]/30 bg-[#BEF264]/10 px-4 py-1.5 text-xs font-bold text-[#BEF264]">
               تفعيل فوري
             </span>
           </div>
