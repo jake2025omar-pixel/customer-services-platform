@@ -5,9 +5,35 @@ import { Link } from "wouter";
 const formatDate = (value: Date | string) => new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 
 export default function Home() {
-  const { data, isLoading } = trpc.platform.dashboard.useQuery();
-  if (isLoading) return <div className="grid min-h-[50vh] place-items-center text-slate-400">Loading your dashboard...</div>;
-  const dashboard = data || { points: 0, tickets: 0, rewards: 0, orders: 0, accountStatus: "Active", recentActivity: [], sessions: 0, serviceCount: 0, activeCampaignCount: 0 };
+  const { data, isLoading } = trpc.platform.dashboard.useQuery(undefined, {
+    retry: false,
+  });
+
+  let storedPoints = 0;
+  try {
+    const raw = localStorage.getItem("gh_pages_user");
+    if (raw) storedPoints = JSON.parse(raw).pointsBalance ?? 0;
+  } catch {}
+
+  const dashboard = data || {
+    points: storedPoints || 100,
+    tickets: 0,
+    rewards: 0,
+    orders: 0,
+    accountStatus: "Active",
+    recentActivity: [],
+    sessions: 0,
+    serviceCount: 0,
+    activeCampaignCount: 0,
+  };
+
+  if (data?.points !== undefined) {
+    dashboard.points = data.points;
+  } else if (storedPoints) {
+    dashboard.points = storedPoints;
+  }
+
+  if (isLoading && !storedPoints) return <div className="grid min-h-[50vh] place-items-center text-slate-400">Loading your dashboard...</div>;
   return <div className="space-y-8"><section className="relative overflow-hidden rounded-[32px] border border-white/[0.08] bg-gradient-to-br from-[#12283a] via-[#0f2030] to-[#0c1725] p-6 sm:p-9"><div className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-emerald-300/10 blur-3xl" /><div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between"><div><div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-emerald-200"><CircleCheck size={14} /> Account active</div><h2 className="max-w-2xl text-3xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">Welcome to your digital services hub.</h2><p className="mt-4 max-w-xl leading-7 text-slate-300">Use your points for eligible services and benefits. Optional rewarded ads are only credited after the provider verifies completion.</p></div><Link href="/services" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-emerald-300 px-5 py-3 font-bold text-[#07131d] transition hover:-translate-y-0.5">Browse services <ArrowUpRight size={17} /></Link></div></section>
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[{ label: "Points balance", value: dashboard.points, icon: WalletCards, accent: "text-emerald-200 bg-emerald-300/10" }, { label: "Campaign tickets", value: dashboard.tickets, icon: Ticket, accent: "text-violet-200 bg-violet-300/10" }, { label: "Verified rewards", value: dashboard.rewards, icon: Gift, accent: "text-amber-200 bg-amber-300/10" }, { label: "Orders", value: dashboard.orders, icon: Clock3, accent: "text-sky-200 bg-sky-300/10" }].map(item => { const Icon = item.icon; return <div key={item.label} className="rounded-3xl border border-white/[0.07] bg-white/[0.035] p-5 transition hover:-translate-y-0.5 hover:bg-white/[0.055]"><div className={`grid h-10 w-10 place-items-center rounded-2xl ${item.accent}`}><Icon size={18} /></div><p className="mt-5 text-sm text-slate-500">{item.label}</p><p className="mt-1 text-3xl font-semibold tracking-tight text-white">{item.value}</p></div>; })}</section>
     <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]"><div className="rounded-3xl border border-white/[0.07] bg-white/[0.035] p-6"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Recent activity</p><h3 className="mt-2 text-xl font-semibold text-white">Your points ledger</h3></div><span className="rounded-full bg-white/[0.05] px-3 py-1.5 text-xs text-slate-400">Server verified</span></div><div className="mt-6 space-y-3">{dashboard.recentActivity.length ? dashboard.recentActivity.map((item: any) => <div key={item.id} className="flex items-center justify-between rounded-2xl border border-white/[0.06] bg-[#0d1a2a] px-4 py-3"><div><p className="text-sm font-semibold text-white">{item.description}</p><p className="mt-1 text-xs text-slate-500">{formatDate(item.createdAt)} · {item.type}</p></div><span className={`text-sm font-bold ${item.amount >= 0 ? "text-emerald-200" : "text-rose-200"}`}>{item.amount >= 0 ? "+" : ""}{item.amount}</span></div>) : <div className="rounded-2xl border border-dashed border-white/10 p-7 text-center text-sm text-slate-500">Your verified activity will appear here.</div>}</div></div><div className="space-y-6"><div className="rounded-3xl border border-white/[0.07] bg-white/[0.035] p-6"><p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Live catalog</p><div className="mt-4 grid grid-cols-2 gap-3"><div className="rounded-2xl bg-[#0d1a2a] p-4"><p className="text-xs text-slate-500">Active services</p><p className="mt-2 text-2xl font-semibold text-white">{dashboard.serviceCount}</p></div><div className="rounded-2xl bg-[#0d1a2a] p-4"><p className="text-xs text-slate-500">Active campaigns</p><p className="mt-2 text-2xl font-semibold text-white">{dashboard.activeCampaignCount}</p></div></div></div><div className="rounded-3xl border border-emerald-300/15 bg-emerald-300/[0.055] p-6"><p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-200">Next best step</p><h3 className="mt-3 text-2xl font-semibold tracking-tight text-white">Explore a verified reward</h3><p className="mt-3 text-sm leading-6 text-slate-300">Rewarded advertising is optional. If a real provider is connected and inventory is available, you can start a session from the reward center.</p><Link href="/rewarded-ads" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-emerald-200 hover:text-emerald-100">Open reward center <ArrowUpRight size={16} /></Link></div></div></section></div>;
