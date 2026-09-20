@@ -13,6 +13,9 @@ import {
   Copy,
   Check,
   Zap,
+  X,
+  AlertTriangle,
+  Gift,
 } from "lucide-react";
 import { CheckoutModal } from "@/components/CheckoutModal";
 import {
@@ -21,6 +24,7 @@ import {
   Service,
   DEFAULT_SERVICES,
 } from "@/lib/firestoreService";
+import { Link } from "wouter";
 
 type CheckoutData = {
   checkout_url: string;
@@ -111,6 +115,46 @@ const BENTO_THEMES = [
 
 const SERVICES_CACHE_KEY = "seoul_services_cache_v3";
 
+function getStoredPoints(): number {
+  if (typeof window !== "undefined") {
+    try {
+      const p1 = localStorage.getItem("tikPoints");
+      if (p1 !== null && !isNaN(Number(p1))) return Number(p1);
+      const p2 = localStorage.getItem("points");
+      if (p2 !== null && !isNaN(Number(p2))) return Number(p2);
+      const rawUser = localStorage.getItem("gh_pages_user");
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        if (parsed.pointsBalance !== undefined) return Number(parsed.pointsBalance);
+      }
+    } catch (e) {
+      console.warn("Failed to read points from localStorage", e);
+    }
+  }
+  return 100;
+}
+
+function saveUserPoints(newPoints: number) {
+  if (typeof window !== "undefined") {
+    try {
+      localStorage.setItem("tikPoints", newPoints.toString());
+      localStorage.setItem("points", newPoints.toString());
+      const rawUser = localStorage.getItem("gh_pages_user");
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        parsed.pointsBalance = newPoints;
+        localStorage.setItem("gh_pages_user", JSON.stringify(parsed));
+      }
+      window.dispatchEvent(new Event("pointsUpdated"));
+      window.dispatchEvent(
+        new StorageEvent("storage", { key: "points", newValue: newPoints.toString() })
+      );
+    } catch (e) {
+      console.warn("Failed to write points to localStorage", e);
+    }
+  }
+}
+
 function getCachedServices(): Service[] {
   if (typeof window !== "undefined") {
     try {
@@ -164,7 +208,6 @@ function BentoSkeletonGrid() {
 }
 
 export default function Services() {
-  // Load 6 colorful Bento services immediately from cache or static default array with 0ms delay
   const [services, setServices] = useState<Service[]>(getCachedServices);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -172,12 +215,44 @@ export default function Services() {
   const [checkoutData, setCheckoutData] = useState<CheckoutData | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Live points tracking
+  const [userPoints, setUserPoints] = useState<number>(getStoredPoints);
+
+  // Insufficient points Pop Bento modal state
+  const [insufficientModal, setInsufficientModal] = useState<{
+    isOpen: boolean;
+    required: number;
+    current: number;
+    serviceTitle: string;
+    service: Service | null;
+  }>({
+    isOpen: false,
+    required: 0,
+    current: 0,
+    serviceTitle: "",
+    service: null,
+  });
+
+  // Success deduction banner
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      setUserPoints(getStoredPoints());
+    };
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("pointsUpdated", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("pointsUpdated", handleStorageChange);
+    };
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
     async function syncServices() {
       try {
-        // Attempt background fetch from Firestore with strict 1.5 second timeout
         const fetchPromise = getFirestoreServices(true);
         const timeoutPromise = new Promise<Service[]>((_, reject) =>
           setTimeout(() => reject(new Error("Firestore timeout (1.5s)")), 1500)
@@ -206,10 +281,52 @@ export default function Services() {
     };
   }, []);
 
-  // Display services or 6 default trial services if empty
   const activeServices = services.length > 0 ? services : DEFAULT_SERVICES;
 
-  const handleOrderClick = (service: Service) => {
+  // Points Order Handler
+  const handlePointsOrder = (service: Service) => {
+    const price = service.pointsPrice ?? 0;
+    const current = getStoredPoints();
+
+    if (current < price) {
+      // Show Pop Bento Neo-brutalist modal
+      setInsufficientModal({
+        isOpen: true,
+        required: price,
+        current: current,
+        serviceTitle: service.title,
+        service: service,
+      });
+      return;
+    }
+
+    // Deduct points
+    const nextPoints = Math.max(0, current - price);
+    saveUserPoints(nextPoints);
+    setUserPoints(nextPoints);
+
+    // Show temporary banner
+    setSuccessNotice(`✅ تم خصم ${price} نقطة بنجاح! رصيدك المتبقي: ${nextPoints} نقطة.`);
+    setTimeout(() => setSuccessNotice(null), 7000);
+
+    // Formulate WhatsApp message and redirect
+    const msg =
+      `مرحباً منصة سيول وخدمة العملاء 👋\n\n` +
+      `أود تأكيد طلب خدمة جديدة عبر النقاط:\n` +
+      `📌 الخدمة: ${service.title}\n` +
+      `💰 السعر المخصوم: ${price} نقطة من رصيد تيك محلي\n` +
+      `📊 رصيدي المتبقي: ${nextPoints} نقطة\n\n` +
+      `بيانات التواصل:\n` +
+      `- اسم الحساب / المتجر: \n` +
+      `- رابط الحساب / المتجر المطلوب: \n` +
+      `شكراً لكم!`;
+
+    const waUrl = `https://wa.me/967781741708?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, "_blank");
+  };
+
+  // Cash / Payoneer / USDT Order Handler
+  const handleCashOrderClick = (service: Service) => {
     setBusyId(service.id);
     setSelectedService(service);
 
@@ -238,15 +355,42 @@ export default function Services() {
               اختر الخدمة واطلبها فوراً
             </h1>
             <p className="mt-2.5 max-w-2xl text-base leading-relaxed text-neutral-400 font-mono text-xs sm:text-sm">
-              خدمات احترافية مضمونة مع تسليم فوري ودعم الدفع المباشر عبر Payoneer والعملات الرقمية (OKX USDT TRC20) أو بنقاط المكافآت.
+              خدمات احترافية مضمونة مع تسليم فوري ودعم الدفع المباشر بنقاط تيك محلي المجانية، أو عبر Payoneer والعملات الرقمية (OKX USDT TRC20).
             </p>
           </div>
 
-          <div className="flex items-center gap-3 rounded-full border-2 border-black bg-[#151722] px-5 py-3 text-xs font-mono font-black text-[#CCFF00] shadow-[3px_3px_0px_0px_black]">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-[#CCFF00] animate-pulse" />
-            <span>PAYONEER + OKX USDT TRC20 ACTIVE</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Live Points Badge */}
+            <div className="flex items-center gap-2.5 rounded-full border-2 border-black bg-[#CCFF00] px-4 py-2 text-xs font-mono font-black text-black shadow-[3px_3px_0px_0px_white]">
+              <span className="text-base">🪙</span>
+              <span>رصيدك الحالي:</span>
+              <span className="text-sm font-black bg-black text-[#CCFF00] px-2 py-0.5 rounded-full">
+                {userPoints} نقطة
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3 rounded-full border-2 border-black bg-[#151722] px-4 py-2 text-xs font-mono font-black text-[#CCFF00] shadow-[3px_3px_0px_0px_black]">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-[#CCFF00] animate-pulse" />
+              <span>PAYONEER + OKX USDT ACTIVE</span>
+            </div>
           </div>
         </div>
+
+        {/* Success Notice Toast */}
+        {successNotice && (
+          <div className="mt-4 p-4 rounded-2xl bg-[#080A0F] border-2 border-[#CCFF00] text-[#CCFF00] font-black text-sm shadow-[4px_4px_0px_0px_#CCFF00] flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 size={20} />
+              <span>{successNotice}</span>
+            </div>
+            <button
+              onClick={() => setSuccessNotice(null)}
+              className="text-white hover:text-[#CCFF00] text-xs font-bold"
+            >
+              ✕
+            </button>
+          </div>
+        )}
       </section>
 
       {/* Bento Grid Container */}
@@ -262,7 +406,10 @@ export default function Services() {
             return (
               <div
                 key={service.id}
-                className={`${theme.bg} ${theme.desktopSpan} rounded-[32px] p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden transition-transform duration-200 ease-out hover:scale-[1.01] active:scale-[1.01] cursor-pointer group`}
+                data-price={service.pointsPrice ?? 0}
+                data-title={service.title}
+                data-usd={service.usdPrice ?? "0"}
+                className={`${theme.bg} ${theme.desktopSpan} rounded-[32px] p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden transition-transform duration-200 ease-out hover:scale-[1.01] active:scale-[1.01] group`}
                 style={{ willChange: "transform" }}
               >
                 {/* Background decorative watermark graphic */}
@@ -326,7 +473,7 @@ export default function Services() {
                   </p>
                 </div>
 
-                {/* Bottom Section: Pricing & Order Action Button */}
+                {/* Bottom Section: Pricing & Order Action Buttons */}
                 <div className="mt-6 pt-5 border-t border-black/10 flex flex-wrap items-center justify-between gap-4">
                   {/* Prices */}
                   <div className="flex items-center gap-4">
@@ -368,27 +515,155 @@ export default function Services() {
                     </div>
                   </div>
 
-                  {/* Clean Sleek Black Action Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOrderClick(service);
-                    }}
-                    disabled={busyId === service.id}
-                    className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-black transition-all duration-200 active:scale-95 ${theme.btnBg}`}
-                  >
-                    {busyId === service.id ? (
-                      <Loader2 className="animate-spin" size={16} />
-                    ) : (
-                      <ShoppingBag size={16} />
-                    )}
-                    <span>اطلب الخدمة</span>
-                  </button>
+                  {/* Dual Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    {/* Primary Button: Order with Points (Deducts & checks points) */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePointsOrder(service);
+                      }}
+                      className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-black transition-all duration-200 active:scale-95 ${theme.btnBg}`}
+                    >
+                      <ShoppingBag size={15} />
+                      <span>اطلب الآن</span>
+                    </button>
+
+                    {/* Secondary Button: Cash (Payoneer / USDT) */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCashOrderClick(service);
+                      }}
+                      title="شراء نقداً عبر بايونير أو USDT"
+                      className="inline-flex items-center justify-center rounded-full p-2.5 bg-white/25 hover:bg-white/40 text-black border border-black/30 transition-all active:scale-95"
+                    >
+                      <CreditCard size={15} />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Pop Bento Neo-Brutalist Insufficient Points Modal with 3D Stars */}
+      {insufficientModal.isOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
+          dir="rtl"
+          onClick={() => setInsufficientModal({ ...insufficientModal, isOpen: false })}
+        >
+          <div
+            className="relative w-full max-w-md rounded-[32px] border-4 border-[#CCFF00] bg-[#080A0F] p-6 sm:p-8 text-white shadow-[8px_8px_0px_0px_#CCFF00] transition-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setInsufficientModal({ ...insufficientModal, isOpen: false })}
+              className="absolute left-5 top-5 rounded-full border-2 border-[#CCFF00] bg-black p-2 text-[#CCFF00] hover:bg-[#CCFF00] hover:text-black transition-colors"
+              aria-label="إغلاق"
+            >
+              <X size={18} />
+            </button>
+
+            {/* 3D Stars Decorative Header */}
+            <div className="flex items-center gap-2 text-2xl mb-2">
+              <span className="text-[#CCFF00] animate-bounce">★</span>
+              <span className="text-white text-lg">✦</span>
+              <span className="text-[#CCFF00] text-xl">✨</span>
+              <span className="text-[11px] font-mono font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30">
+                POP BENTO ALERT
+              </span>
+            </div>
+
+            {/* Error Title */}
+            <div className="mt-3">
+              <div className="inline-flex items-center gap-2 rounded-2xl bg-red-500/10 border-2 border-red-500/40 px-3 py-1 text-red-400 font-mono text-xs font-bold mb-3">
+                <AlertTriangle size={15} />
+                <span>تنبيه الرصيد في تيك محلي</span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-black text-white leading-snug">
+                ❌ نقاطك ليست كافية!
+              </h3>
+            </div>
+
+            {/* Points Contrast Box */}
+            <div className="mt-5 rounded-2xl border-2 border-dashed border-[#CCFF00]/40 bg-[#121620] p-4 text-center">
+              <p className="text-sm font-mono text-slate-300">
+                الخدمة المطلوبة:{" "}
+                <span className="font-bold text-white">
+                  {insufficientModal.serviceTitle}
+                </span>
+              </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-3 font-mono">
+                <div className="rounded-xl border-2 border-[#CCFF00] bg-[#CCFF00]/10 p-2.5">
+                  <span className="block text-[11px] text-[#CCFF00] font-bold">
+                    المطلوب (X)
+                  </span>
+                  <span className="text-xl font-black text-[#CCFF00]">
+                    {insufficientModal.required} نقطة
+                  </span>
+                </div>
+
+                <div className="rounded-xl border-2 border-white/20 bg-white/5 p-2.5">
+                  <span className="block text-[11px] text-slate-400 font-bold">
+                    لديك حالياً (Y)
+                  </span>
+                  <span className="text-xl font-black text-white">
+                    {insufficientModal.current} نقطة
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-xl bg-red-500/20 border border-red-500/40 py-2 text-xs font-black text-red-300">
+                ينقصك {Math.max(0, insufficientModal.required - insufficientModal.current)} نقطة فقط لإتمام الطلب مجاناً!
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-6 flex flex-col gap-3">
+              {/* Earn points button */}
+              <Link
+                href="/rewards"
+                onClick={() => setInsufficientModal({ ...insufficientModal, isOpen: false })}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-black bg-[#CCFF00] py-3 text-sm font-black text-black shadow-[4px_4px_0px_0px_white] hover:bg-[#b8e600] active:scale-95 transition-all text-center"
+              >
+                <Gift size={18} />
+                <span>شاهد إعلانات واكسب نقاط مجاناً 🎁</span>
+              </Link>
+
+              {/* Pay Cash instead button */}
+              {insufficientModal.service && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const svc = insufficientModal.service;
+                    setInsufficientModal({ ...insufficientModal, isOpen: false });
+                    if (svc) handleCashOrderClick(svc);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl border-2 border-white/30 bg-[#151722] py-3 text-xs sm:text-sm font-black text-white hover:bg-[#1f2233] active:scale-95 transition-all"
+                >
+                  <CreditCard size={16} />
+                  <span>
+                    الدفع نقداً (${insufficientModal.service.usdPrice || "20"}) عبر Payoneer / USDT
+                  </span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setInsufficientModal({ ...insufficientModal, isOpen: false })}
+                className="text-xs font-mono text-neutral-400 hover:text-white py-1 transition"
+              >
+                إلغاء والعودة
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
