@@ -18,6 +18,7 @@ import {
   Gift,
 } from "lucide-react";
 import { CheckoutModal } from "@/components/CheckoutModal";
+import { OrderCustomerModal } from "@/components/OrderCustomerModal";
 import {
   getFirestoreServices,
   isGitHubPages,
@@ -236,6 +237,9 @@ export default function Services() {
   // Success deduction banner
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
+  // Active service being ordered via customer modal (Telegram notification)
+  const [orderingService, setOrderingService] = useState<Service | null>(null);
+
   useEffect(() => {
     const handleStorageChange = () => {
       setUserPoints(getStoredPoints());
@@ -300,29 +304,8 @@ export default function Services() {
       return;
     }
 
-    // Deduct points
-    const nextPoints = Math.max(0, current - price);
-    saveUserPoints(nextPoints);
-    setUserPoints(nextPoints);
-
-    // Show temporary banner
-    setSuccessNotice(`✅ تم خصم ${price} نقطة بنجاح! رصيدك المتبقي: ${nextPoints} نقطة.`);
-    setTimeout(() => setSuccessNotice(null), 7000);
-
-    // Formulate WhatsApp message and redirect
-    const msg =
-      `مرحباً منصة سيول وخدمة العملاء 👋\n\n` +
-      `أود تأكيد طلب خدمة جديدة عبر النقاط:\n` +
-      `📌 الخدمة: ${service.title}\n` +
-      `💰 السعر المخصوم: ${price} نقطة من رصيد تيك محلي\n` +
-      `📊 رصيدي المتبقي: ${nextPoints} نقطة\n\n` +
-      `بيانات التواصل:\n` +
-      `- اسم الحساب / المتجر: \n` +
-      `- رابط الحساب / المتجر المطلوب: \n` +
-      `شكراً لكم!`;
-
-    const waUrl = `https://wa.me/967781741708?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, "_blank");
+    // Open Customer Order Modal to input name and contact options (WhatsApp / Instagram / TikTok / Telegram etc.)
+    setOrderingService(service);
   };
 
   // Cash / Payoneer / USDT Order Handler
@@ -704,6 +687,20 @@ export default function Services() {
         onClose={() => setIsModalOpen(false)}
         service={selectedService}
         checkoutData={checkoutData}
+      />
+
+      {/* Customer Details & Contact Option Order Modal (Telegram Notification) */}
+      <OrderCustomerModal
+        isOpen={!!orderingService}
+        onClose={() => setOrderingService(null)}
+        service={orderingService}
+        userPoints={userPoints}
+        onOrderSuccess={(newBalance, orderId) => {
+          saveUserPoints(newBalance);
+          setUserPoints(newBalance);
+          setSuccessNotice(`✅ تم إرسال طلبك #${orderId} إلى بوت التيليجرام بنجاح! رصيدك المتبقي: ${newBalance} نقطة.`);
+          setTimeout(() => setSuccessNotice(null), 8000);
+        }}
       />
     </div>
   );

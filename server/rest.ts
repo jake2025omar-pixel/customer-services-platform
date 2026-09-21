@@ -3,6 +3,7 @@ import type { Express, Request, Response } from "express";
 import { sdk } from "./_core/sdk";
 import { storagePut } from "./storage";
 import * as db from "./db";
+import { sendOrderToTelegram } from "../services/telegram_service.js";
 
 function jsonBody(req: Request) {
   return (req.body && typeof req.body === "object" ? req.body : {}) as Record<string, unknown>;
@@ -248,6 +249,63 @@ export function registerRestRoutes(app: Express) {
       res.json({ ok: true, order_id: order?.id, status: order?.status });
     } catch (error) {
       res.status(400).json({ ok: false, error: error instanceof Error ? error.message : "Unable to process payment webhook" });
+    }
+  });
+
+  app.post("/api/orders/submit", async (req, res) => {
+    try {
+      const body = jsonBody(req);
+      const user = await authenticate(req);
+
+      const customerName = safeString(body.customer_name || body.customerName, "customer_name", 120);
+      const contactMethod = String(body.contact_method || body.contactMethod || "whatsapp").trim();
+      const contactValue = safeString(body.contact_value || body.contactValue, "contact_value", 200);
+      const serviceTitle = safeString(body.service_title || body.serviceTitle, "service_title", 200);
+      const targetUrlOrDetails = String(body.target_account || body.target_url_or_details || body.targetUrlOrDetails || "").trim();
+      const notes = String(body.notes || "").trim();
+      const paymentMethod = String(body.payment_method || body.paymentMethod || "points").trim();
+      const pointsPrice = parseOptionalNumber(body.points_price || body.pointsPrice, "points_price");
+      const usdPrice = body.usd_price || body.usdPrice || null;
+      const remainingPoints = parseOptionalNumber(body.remaining_points || body.remainingPoints, "remaining_points");
+      const serviceId = String(body.service_id || body.serviceId || "").trim();
+
+      const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(2).toString("hex").toUpperCase()}`;
+
+      const orderData = {
+        id: orderId,
+        serviceTitle,
+        serviceId,
+        customerName,
+        contactMethod,
+        contactValue,
+        targetUrlOrDetails,
+        notes,
+        paymentMethod,
+        pointsPrice,
+        usdPrice: usdPrice ? String(usdPrice) : null,
+        remainingPoints: remainingPoints !== null ? remainingPoints : undefined,
+        googleEmail: user?.email,
+      };
+
+      let telegramSent = false;
+      let telegramError: string | null = null;
+      try {
+        await sendOrderToTelegram(orderData);
+        telegramSent = true;
+      } catch (err) {
+        console.error("[Telegram] Notification failed:", err);
+        telegramError = err instanceof Error ? err.message : "Telegram notification failed";
+      }
+
+      res.status(200).json({
+        ok: true,
+        order_id: orderId,
+        telegram_sent: telegramSent,
+        telegram_error: telegramError,
+        message: telegramSent ? "تم إرسال الطلب للبوت بنجاح!" : "تم تسجيل الطلب",
+      });
+    } catch (error) {
+      res.status(400).json({ ok: false, error: error instanceof Error ? error.message : "Unable to submit order" });
     }
   });
 
